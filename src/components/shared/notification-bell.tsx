@@ -23,7 +23,7 @@ export async function NotificationBell() {
   return (
     <Link
       href="/notifications"
-      className="relative inline-flex items-center justify-center rounded-md border border-slate-200 bg-white p-2 hover:bg-slate-50"
+      className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm hover:bg-slate-50"
     >
       <Bell className="h-4 w-4 text-slate-700" />
       {unreadCount > 0 ? (

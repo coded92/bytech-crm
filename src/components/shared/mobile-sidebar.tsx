@@ -1,56 +1,128 @@
 "use client";
 
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
-import { Sidebar } from "@/components/shared/sidebar";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Building2,
+  CheckSquare,
+  ClipboardList,
+  CreditCard,
+  Bell,
+  Menu,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 type MobileSidebarProps = {
   role: "admin" | "staff";
 };
 
 export function MobileSidebar({ role }: MobileSidebarProps) {
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  const navItems = [
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/leads", label: "Leads", icon: Users },
+    { href: "/quotations", label: "Quotations", icon: FileText },
+    { href: "/customers", label: "Customers", icon: Building2 },
+    { href: "/tasks", label: "Tasks", icon: CheckSquare },
+    { href: "/reports", label: "Daily Reports", icon: ClipboardList },
+    { href: "/payments/invoices", label: "Invoices", icon: CreditCard },
+    { href: "/notifications", label: "Notifications", icon: Bell },
+    ...(role === "admin"
+      ? [{ href: "/users", label: "Users", icon: Users }]
+      : []),
+  ];
 
   return (
-    <div className="lg:hidden">
-      {/* Hamburger button */}
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="rounded-xl bg-white shadow-sm"
-        onClick={() => setOpen(true)}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
+    <div className="lg:hidden">  {/* FIXED HERE */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 rounded-xl border-slate-200 bg-white shadow-sm"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
 
-      {open && (
-        <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 z-40 bg-black/40"
-            onClick={() => setOpen(false)}
-          />
+        <SheetContent
+          side="left"
+          className="w-[85vw] max-w-[320px] border-r border-slate-200 bg-white p-0 shadow-2xl"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation Menu</SheetTitle>
+          </SheetHeader>
 
-          {/* Drawer */}
-          <div className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
-              <h2 className="text-base font-semibold text-slate-900">Menu</h2>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setOpen(false)}
-              >
-                <X className="h-5 w-5" />
-              </Button>
+          <div className="flex h-full flex-col bg-white">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-5">
+              <h2 className="text-2xl font-bold text-slate-900">Menu</h2>
+
+              <SheetClose asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-xl border-slate-200 bg-white"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </SheetClose>
             </div>
 
-            <Sidebar role={role} closeSidebar={() => setOpen(false)} />
+            <div className="border-b border-slate-200 px-5 py-5">
+              <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-emerald-500 p-[1px]">
+                <div className="rounded-3xl bg-white px-5 py-5">
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    BYTECH CRM
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Digital Innovation
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <nav className="flex-1 space-y-2 overflow-y-auto bg-white px-4 py-4">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+                return (
+                  <SheetClose asChild key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl px-4 py-4 text-base font-medium transition-all",
+                        isActive
+                          ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md"
+                          : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      )}
+                    >
+                      <Icon className="h-5 w-5" />
+                      {item.label}
+                    </Link>
+                  </SheetClose>
+                );
+              })}
+            </nav>
           </div>
-        </>
-      )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

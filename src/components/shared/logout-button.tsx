@@ -22,14 +22,14 @@ export function LogoutButton() {
       size="sm"
       onClick={handleLogout}
       disabled={isPending}
-      className="gap-2"
+      className="gap-2 rounded-xl border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50"
     >
       {isPending ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <LogOut className="h-4 w-4" />
       )}
-      Logout
+      <span className="hidden sm:inline">Logout</span>
     </Button>
   );
 }

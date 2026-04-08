@@ -51,8 +51,10 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
             <div className="mt-4 space-y-2 text-sm text-slate-600">
               <p>Contact: {customer.contact_person || "-"}</p>
               <p>Phone: {customer.phone || "-"}</p>
-              <p>Plan: {customer.plan_type}</p>
-              <p>Subscription: {formatCurrency(customer.subscription_amount)}</p>
+              <p className="capitalize">Plan: {customer.plan_type}</p>
+              <p>
+                Subscription: {formatCurrency(customer.subscription_amount)}
+              </p>
               <p>Manager: {customer.account_manager?.full_name || "-"}</p>
             </div>
 

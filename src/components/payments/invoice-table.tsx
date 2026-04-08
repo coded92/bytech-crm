@@ -48,9 +48,10 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
             </div>
 
             <div className="mt-4 space-y-2 text-sm text-slate-600">
-              <p>Type: {invoice.invoice_type.replaceAll("_", " ")}</p>
+              <p className="capitalize">
+                Type: {invoice.invoice_type.replaceAll("_", " ")}
+              </p>
               <p>Amount: {formatCurrency(invoice.amount)}</p>
-              <p>Paid: {formatCurrency(invoice.amount_paid)}</p>
               <p>Balance: {formatCurrency(invoice.balance)}</p>
               <p>Due Date: {formatDate(invoice.due_date)}</p>
             </div>

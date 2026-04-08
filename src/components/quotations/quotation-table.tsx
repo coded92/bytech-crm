@@ -7,17 +7,14 @@ type QuotationRow = {
   id: string;
   quote_number: string;
   company_name: string;
-  status: "draft" | "sent" | "accepted" | "rejected" | "expired";
+  contact_person: string | null;
   total: number;
+  status: "draft" | "sent" | "accepted" | "rejected" | "expired";
   valid_until: string | null;
   created_at: string;
 };
 
-export function QuotationTable({
-  quotations,
-}: {
-  quotations: QuotationRow[];
-}) {
+export function QuotationTable({ quotations }: { quotations: QuotationRow[] }) {
   if (quotations.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -48,9 +45,9 @@ export function QuotationTable({
             </div>
 
             <div className="mt-4 space-y-2 text-sm text-slate-600">
+              <p>Contact: {quotation.contact_person || "-"}</p>
               <p>Total: {formatCurrency(quotation.total)}</p>
               <p>Valid Until: {formatDate(quotation.valid_until)}</p>
-              <p>Created: {formatDate(quotation.created_at)}</p>
             </div>
 
             <div className="mt-4">
@@ -77,13 +74,16 @@ export function QuotationTable({
                   Company
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Status
+                  Contact
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Total
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Valid Until
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Status
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Action
@@ -94,20 +94,23 @@ export function QuotationTable({
             <tbody className="divide-y divide-slate-100">
               {quotations.map((quotation) => (
                 <tr key={quotation.id}>
-                  <td className="px-4 py-4 text-sm font-medium text-slate-900">
+                  <td className="px-4 py-4 text-sm text-slate-900">
                     {quotation.quote_number}
                   </td>
-                  <td className="px-4 py-4 text-sm text-slate-600">
+                  <td className="px-4 py-4 text-sm font-medium text-slate-900">
                     {quotation.company_name}
                   </td>
-                  <td className="px-4 py-4">
-                    <QuotationStatusBadge status={quotation.status} />
+                  <td className="px-4 py-4 text-sm text-slate-600">
+                    {quotation.contact_person || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {formatCurrency(quotation.total)}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {formatDate(quotation.valid_until)}
+                  </td>
+                  <td className="px-4 py-4">
+                    <QuotationStatusBadge status={quotation.status} />
                   </td>
                   <td className="px-4 py-4 text-right">
                     <Link
