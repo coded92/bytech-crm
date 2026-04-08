@@ -25,71 +25,115 @@ export function TaskTable({ tasks }: { tasks: TaskRow[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Title
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Type
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Priority
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Due Date
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Assigned To
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Action
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-100">
-            {tasks.map((task) => (
-              <tr key={task.id}>
-                <td className="px-4 py-4 text-sm font-medium text-slate-900">
+    <>
+      <div className="space-y-4 sm:hidden">
+        {tasks.map((task) => (
+          <div
+            key={task.id}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
                   {task.title}
-                </td>
-                <td className="px-4 py-4 text-sm capitalize text-slate-600">
+                </p>
+                <p className="mt-1 text-xs capitalize text-slate-500">
                   {(task.task_type || "general").replaceAll("_", " ")}
-                </td>
-                <td className="px-4 py-4">
-                  <Badge variant="outline" className="capitalize">
-                    {task.priority}
-                  </Badge>
-                </td>
-                <td className="px-4 py-4">
-                  <TaskStatusBadge status={task.status} />
-                </td>
-                <td className="px-4 py-4 text-sm text-slate-600">
-                  {formatDateTime(task.due_date)}
-                </td>
-                <td className="px-4 py-4 text-sm text-slate-600">
-                  {task.assigned_to_profile?.full_name ?? "-"}
-                </td>
-                <td className="px-4 py-4 text-right">
-                  <Link
-                    href={`/tasks/${task.id}`}
-                    className="text-sm font-medium text-slate-900 underline underline-offset-4"
-                  >
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </p>
+              </div>
+
+              <TaskStatusBadge status={task.status} />
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge variant="outline" className="capitalize">
+                {task.priority}
+              </Badge>
+            </div>
+
+            <div className="mt-4 space-y-2 text-sm text-slate-600">
+              <p>Assigned To: {task.assigned_to_profile?.full_name ?? "-"}</p>
+              <p>Due Date: {formatDateTime(task.due_date)}</p>
+            </div>
+
+            <div className="mt-4">
+              <Link
+                href={`/tasks/${task.id}`}
+                className="text-sm font-medium text-slate-900 underline underline-offset-4"
+              >
+                View Task
+              </Link>
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:block">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Title
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Type
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Priority
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Due Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Assigned To
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Action
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {tasks.map((task) => (
+                <tr key={task.id}>
+                  <td className="px-4 py-4 text-sm font-medium text-slate-900">
+                    {task.title}
+                  </td>
+                  <td className="px-4 py-4 text-sm capitalize text-slate-600">
+                    {(task.task_type || "general").replaceAll("_", " ")}
+                  </td>
+                  <td className="px-4 py-4">
+                    <Badge variant="outline" className="capitalize">
+                      {task.priority}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-4">
+                    <TaskStatusBadge status={task.status} />
+                  </td>
+                  <td className="px-4 py-4 text-sm text-slate-600">
+                    {formatDateTime(task.due_date)}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-slate-600">
+                    {task.assigned_to_profile?.full_name ?? "-"}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <Link
+                      href={`/tasks/${task.id}`}
+                      className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
 }

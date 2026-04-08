@@ -76,7 +76,7 @@ export default async function TaskDetailsPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Badge variant="outline" className="capitalize">
             {task.priority}
           </Badge>

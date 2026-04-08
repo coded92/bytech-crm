@@ -181,7 +181,7 @@ export function LeadForm({ sources, staffUsers }: LeadFormProps) {
             <Textarea id="lost_reason" name="lost_reason" />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Button type="submit">Create Lead</Button>
           </div>
         </form>

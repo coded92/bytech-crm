@@ -16,9 +16,10 @@ import {
 
 type SidebarProps = {
   role: "admin" | "staff";
+  closeSidebar?: () => void;
 };
 
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar({ role, closeSidebar }: SidebarProps) {
   const pathname = usePathname();
 
   const navItems = [
@@ -36,7 +37,7 @@ export function Sidebar({ role }: SidebarProps) {
   ];
 
   return (
-    <aside className="h-screen w-64 shrink-0 border-r border-slate-200 bg-white">
+    <aside className="h-full w-72 shrink-0 border-r border-slate-200 bg-white sm:h-screen sm:w-64">
       <div className="border-b border-slate-200 px-4 py-5">
         <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-emerald-500 p-[1px]">
           <div className="rounded-2xl bg-white px-4 py-4">
@@ -56,6 +57,7 @@ export function Sidebar({ role }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={closeSidebar}
               className={cn(
                 "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
                 isActive
