@@ -7,7 +7,22 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { TasksDueToday } from "@/components/dashboard/tasks-due-today";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import type { Invoice, Payment, Task, Activity } from "@/types";
+type InvoiceStatus = "pending" | "partial" | "paid" | "overdue" | "waived";
+
+type DashboardInvoiceRow = {
+  id: string;
+  status: InvoiceStatus;
+};
+
+type DashboardPaymentRow = {
+  amount: number | null;
+  paid_at: string;
+};
+
+type DashboardExpenseRow = {
+  amount: number | null;
+  expense_date: string;
+};
 
 export default async function DashboardPage() {
   const profile = await requireProfile();
@@ -17,12 +32,14 @@ export default async function DashboardPage() {
 
   const todayStart = startOfDay(new Date()).toISOString();
   const todayEnd = endOfDay(new Date()).toISOString();
+  const todayDate = new Date().toISOString().slice(0, 10);
 
   const [
     leadsResult,
     customersResult,
     invoicesResult,
     paymentsResult,
+    expensesResult,
     tasksDueTodayResult,
     activityResult,
   ] = await Promise.all([
@@ -43,6 +60,8 @@ export default async function DashboardPage() {
     supabase.from("payment_invoices").select("id, status"),
 
     supabase.from("payment_transactions").select("amount, paid_at"),
+
+    supabase.from("expenses").select("amount, expense_date"),
 
     profile.role === "admin"
       ? supabase
@@ -91,30 +110,33 @@ export default async function DashboardPage() {
       .limit(10),
   ]);
 
-  // ✅ CAST TYPES
-  const invoices = (invoicesResult.data ?? []) as Invoice[];
-  const payments = (paymentsResult.data ?? []) as Payment[];
-  const tasks = (tasksDueTodayResult.data ?? []) as Task[];
-  const activities = (activityResult.data ?? []) as Activity[];
+  const invoices = (invoicesResult.data ?? []) as DashboardInvoiceRow[];
+  const payments = (paymentsResult.data ?? []) as DashboardPaymentRow[];
+  const expenses = (expensesResult.data ?? []) as DashboardExpenseRow[];
 
-  const pendingInvoices =
-    invoices.filter(
-      (invoice) => invoice.status === "pending" || invoice.status === "partial"
-    ).length;
+  const pendingInvoices = invoices.filter(
+    (invoice) => invoice.status === "pending" || invoice.status === "partial"
+  ).length;
 
-  const overdueInvoices =
-    invoices.filter((invoice) => invoice.status === "overdue").length;
+  const overdueInvoices = invoices.filter(
+    (invoice) => invoice.status === "overdue"
+  ).length;
 
-  const todayRevenue =
-    payments
-      .filter((payment) => {
-        const paidAt = new Date(payment.paid_at).getTime();
-        return (
-          paidAt >= new Date(todayStart).getTime() &&
-          paidAt <= new Date(todayEnd).getTime()
-        );
-      })
-      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const todayRevenue = payments
+    .filter((payment) => {
+      const paidAt = new Date(payment.paid_at).getTime();
+      return (
+        paidAt >= new Date(todayStart).getTime() &&
+        paidAt <= new Date(todayEnd).getTime()
+      );
+    })
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+  const todayExpenses = expenses
+    .filter((expense) => expense.expense_date === todayDate)
+    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+  const todayProfit = todayRevenue - todayExpenses;
 
   return (
     <div className="space-y-6">
@@ -127,26 +149,42 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <StatsCard
           title="Total Leads"
           value={String(leadsResult.count || 0)}
+          description="All visible leads"
+          tone="indigo"
         />
         <StatsCard
           title="Total Customers"
           value={String(customersResult.count || 0)}
+          description="All customer accounts"
+          tone="emerald"
         />
         <StatsCard
-          title="Revenue Today"
+          title="Revenue"
           value={formatCurrency(todayRevenue)}
+          description="Received today"
+          tone="amber"
+        />
+        <StatsCard
+          title="Expenses"
+          value={formatCurrency(todayExpenses)}
+          description="Spent today"
+          tone="rose"
+        />
+        <StatsCard
+          title="Profit"
+          value={formatCurrency(todayProfit)}
+          description="Revenue minus expenses"
+          tone="slate"
         />
         <StatsCard
           title="Pending Invoices"
           value={String(pendingInvoices)}
-        />
-        <StatsCard
-          title="Overdue Invoices"
-          value={String(overdueInvoices)}
+          description="Pending and partial invoices"
+          tone="slate"
         />
       </div>
 
@@ -156,7 +194,7 @@ export default async function DashboardPage() {
             <CardTitle>Tasks Due Today</CardTitle>
           </CardHeader>
           <CardContent>
-            <TasksDueToday tasks={tasks as any} />
+            <TasksDueToday tasks={tasksDueTodayResult.data || []} />
           </CardContent>
         </Card>
 
@@ -165,7 +203,7 @@ export default async function DashboardPage() {
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <ActivityFeed activities={activities} />
+            <ActivityFeed activities={activityResult.data || []} />
           </CardContent>
         </Card>
       </div>

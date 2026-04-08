@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Wallet } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
@@ -30,6 +31,7 @@ export function Sidebar({ role, closeSidebar }: SidebarProps) {
     { href: "/tasks", label: "Tasks", icon: CheckSquare },
     { href: "/reports", label: "Daily Reports", icon: ClipboardList },
     { href: "/payments/invoices", label: "Invoices", icon: CreditCard },
+    { href: "/expenses", label: "Expenses", icon: Wallet },
     { href: "/notifications", label: "Notifications", icon: Bell },
     ...(role === "admin"
       ? [{ href: "/users", label: "Users", icon: Users }]

@@ -161,7 +161,7 @@ export default async function LeadDetailsPage({
           <p className="text-slate-600">{lead.contact_person}</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <LeadStatusBadge status={lead.status} />
 
           <Button asChild variant="outline">

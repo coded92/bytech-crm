@@ -109,7 +109,7 @@ export default async function InvoiceDetailsPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <InvoiceStatusBadge status={invoice.status} />
 
           {invoice.customer?.id ? (
@@ -212,7 +212,7 @@ export default async function InvoiceDetailsPage({
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                           {relatedReceipt ? (
                             <Button asChild variant="outline" size="sm">
                               <Link href={`/payments/receipts/${relatedReceipt.id}`}>

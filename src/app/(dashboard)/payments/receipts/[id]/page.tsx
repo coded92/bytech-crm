@@ -66,7 +66,7 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
         </div>
 
         {/* ✅ UPDATED BUTTONS */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {receipt.invoice?.id ? (
             <Button asChild variant="outline">
               <Link href={`/payments/invoices/${receipt.invoice.id}`}>

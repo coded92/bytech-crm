@@ -76,7 +76,7 @@ export default async function CustomerDetailsPage({
           <p className="text-slate-600">{customer.contact_person}</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <CustomerStatusBadge status={customer.status} />
           {sourceLead ? (
             <Button asChild variant="outline">

@@ -175,6 +175,29 @@ export interface Database {
         };
       };
 
+      activity_logs: {
+        Row: {
+          id: string;
+          actor_id: string | null;
+          entity_type: string;
+          entity_id: string | null;
+          action: string;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_id?: string | null;
+          entity_type: string;
+          entity_id?: string | null;
+          action: string;
+          description?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["activity_logs"]["Insert"]>;
+      };
+
+
       lead_activities: {
         Row: {
           id: string;
@@ -600,6 +623,44 @@ export interface Database {
           related_id?: string | null;
           is_read?: boolean;
         };
+      };
+
+      expenses: {
+        Row: {
+          id: string;
+          title: string;
+          amount: number;
+          category:
+            | "operations"
+            | "salaries"
+            | "transport"
+            | "marketing"
+            | "utilities"
+            | "repair_materials"
+            | "other";
+          expense_date: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          amount: number;
+          category:
+            | "operations"
+            | "salaries"
+            | "transport"
+            | "marketing"
+            | "utilities"
+            | "repair_materials"
+            | "other";
+          expense_date: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["expenses"]["Insert"]>;
       };
 
       daily_reports: {

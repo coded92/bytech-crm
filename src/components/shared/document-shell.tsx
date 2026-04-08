@@ -17,7 +17,7 @@ export function DocumentShell({
     <div className="min-h-screen bg-slate-100 print:bg-white">
       <div className="mx-auto max-w-4xl p-4 print:p-0 sm:p-6">
         <div className="mb-4 flex items-center justify-between print:hidden">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <BackButton />
 
             <div>
