@@ -8,7 +8,7 @@ import { QuotationStatusForm } from "@/components/quotations/quotation-status-fo
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type Props = {
+type QuotationDetailsPageProps = {
   params: Promise<{ id: string }>;
 };
 
@@ -42,12 +42,22 @@ type QuotationItemRow = {
   total_price: number;
 };
 
-export default async function QuotationDetailsPage({ params }: Props) {
+export default async function QuotationDetailsPage({
+  params,
+}: QuotationDetailsPageProps) {
   const { id } = await params;
+
+  if (!id || id === "undefined") {
+    notFound();
+  }
+
   const supabase = await createClient();
 
-  const [{ data: quotationData }, { data: itemsData }] = await Promise.all([
-    supabase.from("quotations").select("*").eq("id", id).single(),
+  const [
+    { data: quotationData, error: quotationError },
+    { data: itemsData, error: itemsError },
+  ] = await Promise.all([
+    supabase.from("quotations").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("quotation_items")
       .select("*")
@@ -55,12 +65,20 @@ export default async function QuotationDetailsPage({ params }: Props) {
       .order("created_at", { ascending: true }),
   ]);
 
-  const quotation = quotationData as QuotationRow | null;
-  const items = (itemsData ?? []) as QuotationItemRow[];
+  if (quotationError) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+        Failed to load quotation: {quotationError.message}
+      </div>
+    );
+  }
 
-  if (!quotation) {
+  if (!quotationData) {
     notFound();
   }
+
+  const quotation = quotationData as QuotationRow;
+  const items = (itemsData ?? []) as QuotationItemRow[];
 
   return (
     <div className="space-y-6">
@@ -75,6 +93,16 @@ export default async function QuotationDetailsPage({ params }: Props) {
         <div className="flex items-center gap-3">
           <QuotationStatusBadge status={quotation.status} />
 
+          <Button asChild variant="outline">
+            <Link href={`/quotations/${quotation.id}/print`}>Print Version</Link>
+          </Button>
+
+          {quotation.lead_id ? (
+            <Button asChild variant="outline">
+              <Link href={`/leads/${quotation.lead_id}`}>View Lead</Link>
+            </Button>
+          ) : null}
+
           {quotation.customer_id ? (
             <Button asChild>
               <Link
@@ -82,12 +110,6 @@ export default async function QuotationDetailsPage({ params }: Props) {
               >
                 Create Invoice
               </Link>
-            </Button>
-          ) : null}
-
-          {quotation.lead_id ? (
-            <Button asChild variant="outline">
-              <Link href={`/leads/${quotation.lead_id}`}>View Lead</Link>
             </Button>
           ) : null}
 
@@ -129,7 +151,11 @@ export default async function QuotationDetailsPage({ params }: Props) {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {items.length === 0 ? (
+              {itemsError ? (
+                <div className="text-sm text-red-600">
+                  Failed to load items: {itemsError.message}
+                </div>
+              ) : items.length === 0 ? (
                 <div className="text-sm text-slate-500">No items found.</div>
               ) : (
                 items.map((item) => (
@@ -234,7 +260,7 @@ function InfoItem({
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className="mt-1 text-sm text-slate-900">{value ?? "-"}</p>
+      <p className="mt-1 text-sm capitalize text-slate-900">{value ?? "-"}</p>
     </div>
   );
 }

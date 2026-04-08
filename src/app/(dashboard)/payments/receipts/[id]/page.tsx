@@ -35,6 +35,10 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
+  if (!id || id === "undefined") {
+    notFound();
+  }
+
   const { data: receiptData } = await supabase
     .from("receipts")
     .select(`
@@ -43,7 +47,7 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
       invoice:payment_invoices(id, invoice_number)
     `)
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   const receipt = receiptData as ReceiptRow | null;
 
@@ -61,6 +65,7 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
           <p className="text-slate-600">Payment confirmation</p>
         </div>
 
+        {/* ✅ UPDATED BUTTONS */}
         <div className="flex items-center gap-3">
           {receipt.invoice?.id ? (
             <Button asChild variant="outline">
@@ -70,6 +75,14 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
             </Button>
           ) : null}
 
+          {/* NEW PRINT VERSION PAGE */}
+          <Button asChild variant="outline">
+            <Link href={`/payments/receipts/${receipt.id}/print`}>
+              Print Version
+            </Link>
+          </Button>
+
+          {/* EXISTING QUICK PRINT BUTTON */}
           <PrintReceiptButton />
         </div>
       </div>

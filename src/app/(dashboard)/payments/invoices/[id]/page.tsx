@@ -16,6 +16,7 @@ type InvoiceRow = {
   id: string;
   invoice_number: string;
   customer_id: string;
+  quotation_id?: string | null;
   invoice_type: "setup_fee" | "subscription" | "custom";
   amount: number;
   amount_paid: number;
@@ -126,6 +127,12 @@ export default async function InvoiceDetailsPage({
               </Link>
             </Button>
           ) : null}
+
+          <Button asChild variant="outline">
+            <Link href={`/payments/invoices/${invoice.id}/print`}>
+              Print Version
+            </Link>
+          </Button>
         </div>
       </div>
 
