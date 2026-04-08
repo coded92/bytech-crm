@@ -50,9 +50,11 @@ export default async function TasksPage() {
           </p>
         </div>
 
-        <Button asChild>
-          <Link href="/tasks/new">Create Task</Link>
-        </Button>
+        {profile.role === "admin" ? (
+          <Button asChild>
+            <Link href="/tasks/new">Create Task</Link>
+          </Button>
+        ) : null}
       </div>
 
       {error ? (

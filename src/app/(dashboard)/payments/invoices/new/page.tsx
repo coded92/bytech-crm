@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { InvoiceForm } from "@/components/payments/invoice-form";
 
 type NewInvoicePageProps = {
@@ -11,7 +12,9 @@ type NewInvoicePageProps = {
 export default async function NewInvoicePage({
   searchParams,
 }: NewInvoicePageProps) {
-  const params = await searchParams;
+  await requireAdmin();
+
+  const resolvedSearchParams = await searchParams;
   const supabase = await createClient();
 
   const [{ data: customers }, { data: quotations }] = await Promise.all([
@@ -21,7 +24,8 @@ export default async function NewInvoicePage({
       .order("company_name"),
     supabase
       .from("quotations")
-      .select("id, quote_number, company_name")
+      .select("id, quote_number, customer_id, total, status")
+      .in("status", ["accepted", "sent", "draft"])
       .order("created_at", { ascending: false }),
   ]);
 
@@ -32,15 +36,15 @@ export default async function NewInvoicePage({
           Create Invoice
         </h2>
         <p className="text-slate-600">
-          Generate a new invoice for a customer.
+          Create an invoice from a customer or quotation.
         </p>
       </div>
 
       <InvoiceForm
-        customers={(customers || []) as any}
-        quotations={(quotations || []) as any}
-        prefilledCustomerId={params.customerId || ""}
-        prefilledQuotationId={params.quotationId || ""}
+        customers={customers || []}
+        quotations={quotations || []}
+        prefilledCustomerId={resolvedSearchParams.customerId || ""}
+        prefilledQuotationId={resolvedSearchParams.quotationId || ""}
       />
     </div>
   );

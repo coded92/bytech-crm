@@ -1,13 +1,8 @@
-import { redirect } from "next/navigation";
-import { requireProfile } from "@/lib/auth/require-profile";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { UserForm } from "@/components/users/user-form";
 
 export default async function NewUserPage() {
-  const profile = await requireProfile();
-
-  if (profile.role !== "admin") {
-    redirect("/dashboard");
-  }
+  await requireAdmin();
 
   return (
     <div className="space-y-6">

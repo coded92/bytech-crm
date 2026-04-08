@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { TaskForm } from "@/components/tasks/task-form";
 
 export default async function NewTaskPage() {
+  await requireAdmin();
   const supabase = await createClient();
 
   const [{ data: staffUsers }, { data: leads }, { data: customers }] =

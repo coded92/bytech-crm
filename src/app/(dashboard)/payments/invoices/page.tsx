@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { InvoiceTable } from "@/components/payments/invoice-table";
 import { Button } from "@/components/ui/button";
 
 export default async function InvoicesPage() {
+  const profile = await requireProfile();
   const supabase = await createClient();
 
   const { data: invoices, error } = await supabase
@@ -33,9 +35,11 @@ export default async function InvoicesPage() {
           </p>
         </div>
 
-        <Button asChild>
-          <Link href="/payments/invoices/new">Create Invoice</Link>
-        </Button>
+        {profile.role === "admin" ? (
+          <Button asChild>
+            <Link href="/payments/invoices/new">Create Invoice</Link>
+          </Button>
+        ) : null}
       </div>
 
       {error ? (

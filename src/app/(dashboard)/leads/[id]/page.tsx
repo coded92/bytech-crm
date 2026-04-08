@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDateTime } from "@/lib/utils/format-date";
@@ -56,13 +57,25 @@ type LeadRow = {
 type LeadNoteRow = {
   id: string;
   note: string;
-  note_type: string | null;
+  note_type: "call" | "meeting" | "whatsapp" | "email" | "general" | null;
   follow_up_date: string | null;
   created_at: string;
   created_by_profile?: {
     full_name: string | null;
   } | null;
 };
+
+type LeadNoteForComponent = {
+  id: string;
+  note: string;
+  note_type: "call" | "meeting" | "whatsapp" | "email" | "general";
+  follow_up_date: string | null;
+  created_at: string;
+  created_by_profile?: {
+    full_name: string | null;
+  } | null;
+};
+
 
 type LeadActivityRow = {
   id: string;
@@ -78,6 +91,7 @@ type LeadActivityRow = {
 export default async function LeadDetailsPage({
   params,
 }: LeadDetailsPageProps) {
+  const profile = await requireProfile();
   const { id } = await params;
   const supabase = await createClient();
 
@@ -120,7 +134,12 @@ export default async function LeadDetailsPage({
     ]);
 
   const lead = leadData as LeadRow | null;
-  const notes = (notesData ?? []) as LeadNoteRow[];
+  const notes: LeadNoteForComponent[] = ((notesData ?? []) as LeadNoteRow[]).map(
+    (note) => ({
+      ...note,
+      note_type: note.note_type ?? "general",
+    })
+  );
   const activities = (activitiesData ?? []) as LeadActivityRow[];
 
   if (!lead) {
@@ -128,7 +147,9 @@ export default async function LeadDetailsPage({
   }
 
   const canConvert =
-    !lead.converted_customer_id && lead.status !== "closed_lost";
+    profile.role === "admin" &&
+    !lead.converted_customer_id &&
+    lead.status !== "closed_lost";
 
   return (
     <div className="space-y-6">
@@ -207,7 +228,7 @@ export default async function LeadDetailsPage({
             </CardContent>
           </Card>
 
-          <LeadNotes leadId={lead.id} notes={notes as any} />
+          <LeadNotes leadId={lead.id} notes={notes} />
 
           <Card>
             <CardHeader>
@@ -268,7 +289,10 @@ export default async function LeadDetailsPage({
                 label="Converted"
                 value={formatDateTime(lead.converted_at)}
               />
-              <SummaryItem label="Lost Reason" value={lead.lost_reason || "-"} />
+              <SummaryItem
+                label="Lost Reason"
+                value={lead.lost_reason || "-"}
+              />
             </CardContent>
           </Card>
         </div>

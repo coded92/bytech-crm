@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { requireProfile } from "@/lib/auth/require-profile";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { UserTable } from "@/components/users/user-table";
 import { Button } from "@/components/ui/button";
 
 export default async function UsersPage() {
-  const profile = await requireProfile();
-
-  if (profile.role !== "admin") {
-    redirect("/dashboard");
-  }
-
+  await requireAdmin();
   const supabase = await createClient();
 
   const { data: users, error } = await supabase

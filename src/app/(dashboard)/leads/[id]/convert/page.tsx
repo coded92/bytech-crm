@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { createClient } from "@/lib/supabase/server";
 import { ConvertLeadForm } from "@/components/customers/convert-lead-form";
 
@@ -24,6 +25,8 @@ type LeadRow = {
 export default async function ConvertLeadPage({
   params,
 }: ConvertLeadPageProps) {
+  await requireAdmin();
+
   const { id } = await params;
   const supabase = await createClient();
 

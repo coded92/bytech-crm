@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type UserRow = {
   id: string;
   full_name: string;
@@ -19,7 +21,7 @@ export function UserTable({ users }: { users: UserRow[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
@@ -37,10 +39,10 @@ export function UserTable({ users }: { users: UserRow[] }) {
                 Job Title
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                Phone
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                 Status
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">
+                Action
               </th>
             </tr>
           </thead>
@@ -60,9 +62,6 @@ export function UserTable({ users }: { users: UserRow[] }) {
                 <td className="px-4 py-4 text-sm text-slate-600">
                   {user.job_title ?? "-"}
                 </td>
-                <td className="px-4 py-4 text-sm text-slate-600">
-                  {user.phone ?? "-"}
-                </td>
                 <td className="px-4 py-4 text-sm">
                   {user.is_active ? (
                     <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
@@ -73,6 +72,14 @@ export function UserTable({ users }: { users: UserRow[] }) {
                       Inactive
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-4 text-right">
+                  <Link
+                    href={`/users/${user.id}`}
+                    className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                  >
+                    View
+                  </Link>
                 </td>
               </tr>
             ))}
