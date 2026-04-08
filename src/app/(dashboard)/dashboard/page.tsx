@@ -6,6 +6,7 @@ import { StatsCard } from "@/components/dashboard/stats-card";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { TasksDueToday } from "@/components/dashboard/tasks-due-today";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RunReminderScanButton } from "@/components/dashboard/run-reminder-scan-button";
 
 type InvoiceStatus = "pending" | "partial" | "paid" | "overdue" | "waived";
 
@@ -148,6 +149,12 @@ export default async function DashboardPage() {
           Welcome back, {profile.full_name}.
         </p>
       </div>
+
+      {profile.role === "admin" ? (
+        <div className="mt-4">
+          <RunReminderScanButton />
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <StatsCard
