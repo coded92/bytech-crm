@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { BackButton } from "@/components/shared/back-button";
 import { PrintButton } from "@/components/shared/print-button";
 
 type DocumentShellProps = {
@@ -16,9 +17,13 @@ export function DocumentShell({
     <div className="min-h-screen bg-slate-100 print:bg-white">
       <div className="mx-auto max-w-4xl p-4 print:p-0 sm:p-6">
         <div className="mb-4 flex items-center justify-between print:hidden">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-            <p className="text-sm text-slate-500">{documentNumber}</p>
+          <div className="flex items-center gap-3">
+            <BackButton />
+
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+              <p className="text-sm text-slate-500">{documentNumber}</p>
+            </div>
           </div>
 
           <PrintButton />

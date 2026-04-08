@@ -82,8 +82,6 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
             </Link>
           </Button>
 
-          {/* EXISTING QUICK PRINT BUTTON */}
-          <PrintReceiptButton />
         </div>
       </div>
 
@@ -142,4 +140,4 @@ function InfoItem({
       <p className="mt-1 text-sm text-slate-900">{value ?? "-"}</p>
     </div>
   );
-}
+} 
