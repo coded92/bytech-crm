@@ -7,6 +7,7 @@ import { Wallet } from "lucide-react";
 import { Headset } from "lucide-react";
 import { MonitorSmartphone } from "lucide-react";
 import { Package } from "lucide-react";
+import { Settings } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
@@ -40,7 +41,10 @@ export function Sidebar({ role, closeSidebar }: SidebarProps) {
     { href: "/assets", label: "Assets", icon: Package },
     { href: "/support", label: "Support", icon: Headset },
     ...(role === "admin"
-      ? [{ href: "/users", label: "Users", icon: Users }]
+      ? [
+          { href: "/users", label: "Users", icon: Users },
+          { href: "/settings/company", label: "Settings", icon: Settings },
+        ]
       : []),
   ];
 

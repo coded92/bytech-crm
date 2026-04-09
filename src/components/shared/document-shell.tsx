@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { BackButton } from "@/components/shared/back-button";
 import { PrintButton } from "@/components/shared/print-button";
+import { getCompanySettings } from "@/lib/company/get-company-settings";
 
 type DocumentShellProps = {
   title: string;
@@ -8,16 +9,25 @@ type DocumentShellProps = {
   children: ReactNode;
 };
 
-export function DocumentShell({
+export async function DocumentShell({
   title,
   documentNumber,
   children,
 }: DocumentShellProps) {
+  const settings = await getCompanySettings();
+
+  const locationParts = [
+    settings.address,
+    settings.city,
+    settings.state,
+    settings.country,
+  ].filter(Boolean);
+
   return (
     <div className="min-h-screen bg-slate-100 print:bg-white">
       <div className="mx-auto max-w-4xl p-4 print:p-0 sm:p-6">
         <div className="mb-4 flex items-center justify-between print:hidden">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3">
             <BackButton />
 
             <div>
@@ -33,11 +43,39 @@ export function DocumentShell({
           <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-emerald-500 px-8 py-8 text-white">
             <div className="flex items-start justify-between gap-6">
               <div>
-                <h2 className="text-2xl font-bold">BYTECH Digital Innovation</h2>
-                <p className="mt-2 text-sm text-indigo-50">
-                  POS Systems · Cloud & Offline Solutions
-                </p>
-                <p className="mt-1 text-sm text-indigo-50">bytechng.com</p>
+                <h2 className="text-2xl font-bold">
+                  {settings.company_name}
+                </h2>
+
+                {settings.brand_name ? (
+                  <p className="mt-2 text-sm text-indigo-50">
+                    {settings.brand_name}
+                  </p>
+                ) : null}
+
+                {settings.website ? (
+                  <p className="mt-1 text-sm text-indigo-50">
+                    {settings.website}
+                  </p>
+                ) : null}
+
+                {settings.email ? (
+                  <p className="mt-1 text-sm text-indigo-50">
+                    {settings.email}
+                  </p>
+                ) : null}
+
+                {settings.phone ? (
+                  <p className="mt-1 text-sm text-indigo-50">
+                    {settings.phone}
+                  </p>
+                ) : null}
+
+                {locationParts.length > 0 ? (
+                  <p className="mt-1 text-sm text-indigo-50">
+                    {locationParts.join(", ")}
+                  </p>
+                ) : null}
               </div>
 
               <div className="text-right">
@@ -51,6 +89,12 @@ export function DocumentShell({
           </div>
 
           <div className="p-8">{children}</div>
+
+          {settings.document_footer ? (
+            <div className="border-t border-slate-200 px-8 py-4 text-sm text-slate-500">
+              {settings.document_footer}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

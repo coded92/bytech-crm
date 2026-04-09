@@ -59,6 +59,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/support")
     pathname.startsWith("/assets")
     pathname.startsWith("/users");
+    pathname.startsWith("/settings")
+    
+    
 
   if (!user && isDashboardRoute) {
     const url = request.nextUrl.clone();
@@ -91,5 +94,6 @@ export const config = {
     "/support/:path*",
     "/assets/:path*",
     "/users/:path*",
+    "/settings/:path*",
   ],
 };
