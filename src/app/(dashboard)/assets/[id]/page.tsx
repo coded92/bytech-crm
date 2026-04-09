@@ -5,6 +5,7 @@ import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
 import { AssetConditionBadge } from "@/components/assets/asset-condition-badge";
 import { RepairHistoryForm } from "@/components/assets/repair-history-form";
+import { ArchiveAssetButton } from "@/components/assets/archive-asset-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -130,6 +131,7 @@ export default async function AssetDetailsPage({
           <Button asChild variant="outline">
             <Link href={`/assets/${asset.id}/edit`}>Edit Asset</Link>
           </Button>
+          <ArchiveAssetButton assetId={asset.id} />
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { DeploymentStatusBadge } from "@/components/deployments/deployment-status-badge";
+import { ArchiveDeploymentButton } from "@/components/deployments/archive-deployment-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -84,6 +85,7 @@ export default async function DeploymentDetailsPage({
               Edit Deployment
             </Link>
           </Button>
+          <ArchiveDeploymentButton deploymentId={deployment.id} />
         </div>
       </div>
 

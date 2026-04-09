@@ -3,10 +3,26 @@ import { createClient } from "@/lib/supabase/server";
 import { SupportTable } from "@/components/support/support-table";
 import { Button } from "@/components/ui/button";
 
+type SupportRow = {
+  id: string;
+  ticket_number: string;
+  title: string;
+  issue_type: "hardware" | "software" | "network" | "training" | "billing" | "other";
+  priority: "low" | "medium" | "high" | "urgent";
+  status: "open" | "in_progress" | "resolved" | "closed";
+  created_at: string;
+  customer?: {
+    company_name: string | null;
+  } | null;
+  assigned_profile?: {
+    full_name: string | null;
+  } | null;
+};
+
 export default async function SupportPage() {
   const supabase = await createClient();
 
-  const { data: tickets, error } = await supabase
+  const { data, error } = await supabase
     .from("support_tickets")
     .select(`
       id,
@@ -20,6 +36,8 @@ export default async function SupportPage() {
       assigned_profile:profiles!support_tickets_assigned_to_fkey(full_name)
     `)
     .order("created_at", { ascending: false });
+
+  const tickets = (data ?? []) as SupportRow[];
 
   return (
     <div className="space-y-6">
@@ -43,7 +61,7 @@ export default async function SupportPage() {
           Failed to load support tickets: {error.message}
         </div>
       ) : (
-        <SupportTable tickets={tickets || []} />
+        <SupportTable tickets={tickets} />
       )}
     </div>
   );

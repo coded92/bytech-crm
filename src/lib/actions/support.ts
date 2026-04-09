@@ -7,6 +7,7 @@ import {
   createSupportTicketSchema,
   updateSupportTicketSchema,
 } from "@/lib/validations/support";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 type CreatedTicketRow = {
   id: string;
@@ -156,5 +157,30 @@ export async function updateSupportTicketAction(
   revalidatePath("/support");
   revalidatePath(`/support/${ticketId}`);
 
+  return { success: true };
+}
+
+export async function deleteSupportTicketAction(ticketId: string) {
+  const admin = await requireAdmin();
+  const supabase = await createClient();
+
+  const { error } = await (supabase as any)
+    .from("support_tickets")
+    .delete()
+    .eq("id", ticketId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: admin.id,
+    entity_type: "support_ticket",
+    entity_id: ticketId,
+    action: "deleted",
+    description: "Deleted support ticket",
+  });
+
+  revalidatePath("/support");
   return { success: true };
 }

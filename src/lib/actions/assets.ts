@@ -112,3 +112,23 @@ export async function updateAssetAction(assetId: string, formData: FormData) {
 
   redirect(`/assets/${assetId}`);
 }
+
+export async function archiveAssetAction(assetId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { error } = await (supabase as any)
+    .from("assets")
+    .update({
+      status: "retired",
+    })
+    .eq("id", assetId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/assets");
+  revalidatePath(`/assets/${assetId}`);
+  return { success: true };
+}

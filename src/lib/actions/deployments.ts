@@ -213,3 +213,31 @@ export async function updateDeploymentAction(
 
   redirect(`/deployments/${deploymentId}`);
 }
+
+export async function archiveDeploymentAction(deploymentId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { error } = await (supabase as any)
+    .from("pos_deployments")
+    .update({
+      deployment_status: "cancelled",
+    })
+    .eq("id", deploymentId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    entity_type: "deployment",
+    entity_id: deploymentId,
+    action: "archived",
+    description: "Cancelled deployment record",
+  });
+
+  revalidatePath("/deployments");
+  revalidatePath(`/deployments/${deploymentId}`);
+
+  return { success: true };
+}

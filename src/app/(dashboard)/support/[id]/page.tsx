@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/utils/format-date";
 import { SupportStatusBadge } from "@/components/support/support-status-badge";
 import { SupportUpdateForm } from "@/components/support/support-update-form";
+import { DeleteSupportTicketButton } from "@/components/support/delete-support-ticket-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SupportAttachmentUploadForm } from "@/components/support/support-attachment-upload-form";
@@ -246,6 +247,8 @@ export default async function SupportDetailsPage({
               <SummaryItem label="Type" value={ticket.issue_type} />
             </CardContent>
           </Card>
+
+          <DeleteSupportTicketButton ticketId={ticket.id} />
         </div>
       </div>
     </div>

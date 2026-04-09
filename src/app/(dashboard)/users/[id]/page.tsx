@@ -3,11 +3,18 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDateTime } from "@/lib/utils/format-date";
+import { ToggleUserStatusButton } from "@/components/users/toggle-user-status-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type UserDetailsPageProps = {
   params: Promise<{ id: string }>;
+};
+
+type AdminProfile = {
+  id: string;
+  role: "admin" | "staff";
+  full_name: string;
 };
 
 type UserRow = {
@@ -24,7 +31,7 @@ type UserRow = {
 export default async function UserDetailsPage({
   params,
 }: UserDetailsPageProps) {
-  await requireAdmin();
+  const admin = (await requireAdmin()) as AdminProfile;
   const { id } = await params;
   const supabase = await createClient();
 
@@ -47,6 +54,7 @@ export default async function UserDetailsPage({
   }
 
   const user = userData as UserRow;
+  const canToggleStatus = admin.id !== user.id;
 
   return (
     <div className="space-y-6">
@@ -58,9 +66,18 @@ export default async function UserDetailsPage({
           <p className="text-slate-600">{user.email ?? "-"}</p>
         </div>
 
-        <Button asChild>
-          <Link href={`/users/${user.id}/edit`}>Edit User</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button asChild>
+            <Link href={`/users/${user.id}/edit`}>Edit User</Link>
+          </Button>
+
+          {canToggleStatus ? (
+            <ToggleUserStatusButton
+              userId={user.id}
+              isActive={user.is_active}
+            />
+          ) : null}
+        </div>
       </div>
 
       <Card>
