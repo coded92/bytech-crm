@@ -500,6 +500,77 @@ export interface Database {
         };
       };
 
+      customer_branches: {
+        Row: {
+          id: string;
+          customer_id: string;
+          branch_name: string;
+          contact_person: string | null;
+          phone: string | null;
+          address: string | null;
+          city: string | null;
+          state: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          branch_name: string;
+          contact_person?: string | null;
+          phone?: string | null;
+          address?: string | null;
+          city?: string | null;
+          state?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["customer_branches"]["Insert"]>;
+      };
+      pos_deployments: {
+        Row: {
+          id: string;
+          deployment_number: string;
+          customer_id: string;
+          branch_id: string | null;
+          deployment_type:
+            | "new_installation"
+            | "upgrade"
+            | "replacement"
+            | "maintenance";
+          terminal_count: number;
+          deployment_status: "planned" | "in_progress" | "completed" | "cancelled";
+          deployed_by: string | null;
+          install_date: string | null;
+          go_live_date: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          deployment_number?: string;
+          customer_id: string;
+          branch_id?: string | null;
+          deployment_type:
+            | "new_installation"
+            | "upgrade"
+            | "replacement"
+            | "maintenance";
+          terminal_count?: number;
+          deployment_status?: "planned" | "in_progress" | "completed" | "cancelled";
+          deployed_by?: string | null;
+          install_date?: string | null;
+          go_live_date?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pos_deployments"]["Insert"]>;
+      };
+
       quotation_items: {
         Row: {
           id: string;

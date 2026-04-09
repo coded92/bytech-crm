@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Wallet } from "lucide-react";
 import { Headset } from "lucide-react";
+import { MonitorSmartphone } from "lucide-react";
 import {
   Sheet,
   SheetClose,
@@ -44,6 +45,7 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
     { href: "/payments/invoices", label: "Invoices", icon: CreditCard },
     { href: "/expenses", label: "Expenses", icon: Wallet },
     { href: "/notifications", label: "Notifications", icon: Bell },
+    { href: "/deployments", label: "Deployments", icon: MonitorSmartphone },
     { href: "/support", label: "Support", icon: Headset },
     ...(role === "admin"
       ? [{ href: "/users", label: "Users", icon: Users }]
