@@ -8,6 +8,7 @@ import { Headset } from "lucide-react";
 import { MonitorSmartphone } from "lucide-react";
 import { Package } from "lucide-react";
 import { Settings } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
@@ -44,6 +45,7 @@ export function Sidebar({ role, closeSidebar }: SidebarProps) {
       ? [
           { href: "/users", label: "Users", icon: Users },
           { href: "/settings/company", label: "Settings", icon: Settings },
+          { href: "/audit-logs", label: "Audit Logs", icon: ShieldCheck },
         ]
       : []),
   ];
