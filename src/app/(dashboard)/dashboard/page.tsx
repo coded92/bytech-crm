@@ -1,29 +1,47 @@
-import { startOfDay, endOfDay } from "date-fns";
+import { subDays, format } from "date-fns";
 import { requireProfile } from "@/lib/auth/require-profile";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { TasksDueToday } from "@/components/dashboard/tasks-due-today";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RunReminderScanButton } from "@/components/dashboard/run-reminder-scan-button";
+import { AnalyticsChart } from "@/components/dashboard/analytics-chart";
+import { SummaryGrid } from "@/components/dashboard/summary-grid";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type InvoiceStatus = "pending" | "partial" | "paid" | "overdue" | "waived";
 
-type DashboardInvoiceRow = {
+type InvoiceRow = {
   id: string;
   status: InvoiceStatus;
 };
 
-type DashboardPaymentRow = {
+type LeadStatus = "new" | "contacted" | "interested" | "follow_up" | "closed";
+
+type LeadPipelineRow = {
+  status: LeadStatus;
+};
+
+type PaymentRow = {
   amount: number | null;
   paid_at: string;
 };
 
-type DashboardExpenseRow = {
+type ExpenseRow = {
   amount: number | null;
   expense_date: string;
 };
+
+function buildLast7DaysLabels() {
+  return Array.from({ length: 7 }).map((_, index) => {
+    const date = subDays(new Date(), 6 - index);
+    return {
+      key: format(date, "yyyy-MM-dd"),
+      label: format(date, "dd MMM"),
+    };
+  });
+}
 
 export default async function DashboardPage() {
   const profile = await requireProfile();
@@ -31,9 +49,8 @@ export default async function DashboardPage() {
 
   await supabase.rpc("mark_overdue_invoices");
 
-  const todayStart = startOfDay(new Date()).toISOString();
-  const todayEnd = endOfDay(new Date()).toISOString();
-  const todayDate = new Date().toISOString().slice(0, 10);
+  const last7Days = buildLast7DaysLabels();
+  const startDate = last7Days[0]?.key;
 
   const [
     leadsResult,
@@ -43,6 +60,7 @@ export default async function DashboardPage() {
     expensesResult,
     tasksDueTodayResult,
     activityResult,
+    leadPipelineResult,
   ] = await Promise.all([
     profile.role === "admin"
       ? supabase.from("leads").select("id", { count: "exact", head: true })
@@ -60,9 +78,15 @@ export default async function DashboardPage() {
 
     supabase.from("payment_invoices").select("id, status"),
 
-    supabase.from("payment_transactions").select("amount, paid_at"),
+    supabase
+      .from("payment_transactions")
+      .select("amount, paid_at")
+      .gte("paid_at", `${startDate}T00:00:00.000Z`),
 
-    supabase.from("expenses").select("amount, expense_date"),
+    supabase
+      .from("expenses")
+      .select("amount, expense_date")
+      .gte("expense_date", startDate),
 
     profile.role === "admin"
       ? supabase
@@ -75,8 +99,8 @@ export default async function DashboardPage() {
             due_date,
             assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
           `)
-          .gte("due_date", todayStart)
-          .lte("due_date", todayEnd)
+          .gte("due_date", `${format(new Date(), "yyyy-MM-dd")}T00:00:00.000Z`)
+          .lte("due_date", `${format(new Date(), "yyyy-MM-dd")}T23:59:59.999Z`)
           .neq("status", "completed")
           .order("due_date", { ascending: true })
           .limit(10)
@@ -91,8 +115,8 @@ export default async function DashboardPage() {
             assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
           `)
           .eq("assigned_to", profile.id)
-          .gte("due_date", todayStart)
-          .lte("due_date", todayEnd)
+          .gte("due_date", `${format(new Date(), "yyyy-MM-dd")}T00:00:00.000Z`)
+          .lte("due_date", `${format(new Date(), "yyyy-MM-dd")}T23:59:59.999Z`)
           .neq("status", "completed")
           .order("due_date", { ascending: true })
           .limit(10),
@@ -109,11 +133,14 @@ export default async function DashboardPage() {
       `)
       .order("created_at", { ascending: false })
       .limit(10),
+
+    supabase.from("leads").select("status"),
   ]);
 
-  const invoices = (invoicesResult.data ?? []) as DashboardInvoiceRow[];
-  const payments = (paymentsResult.data ?? []) as DashboardPaymentRow[];
-  const expenses = (expensesResult.data ?? []) as DashboardExpenseRow[];
+  const invoices = (invoicesResult.data ?? []) as InvoiceRow[];
+  const leadPipeline = (leadPipelineResult.data ?? []) as LeadPipelineRow[];
+  const payments = (paymentsResult.data ?? []) as PaymentRow[];
+  const expenses = (expensesResult.data ?? []) as ExpenseRow[];
 
   const pendingInvoices = invoices.filter(
     (invoice) => invoice.status === "pending" || invoice.status === "partial"
@@ -123,19 +150,87 @@ export default async function DashboardPage() {
     (invoice) => invoice.status === "overdue"
   ).length;
 
-  const todayRevenue = payments
-    .filter((payment) => {
-      const paidAt = new Date(payment.paid_at).getTime();
-      return (
-        paidAt >= new Date(todayStart).getTime() &&
-        paidAt <= new Date(todayEnd).getTime()
-      );
-    })
-    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const paidInvoices = invoices.filter(
+    (invoice) => invoice.status === "paid"
+  ).length;
 
-  const todayExpenses = expenses
-    .filter((expense) => expense.expense_date === todayDate)
-    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const invoiceSummary = [
+    {
+      label: "Pending",
+      value: invoices.filter((i) => i.status === "pending").length,
+    },
+    {
+      label: "Partial",
+      value: invoices.filter((i) => i.status === "partial").length,
+    },
+    {
+      label: "Paid",
+      value: paidInvoices,
+    },
+    {
+      label: "Overdue",
+      value: overdueInvoices,
+    },
+  ];
+
+  const leadSummary = [
+    {
+      label: "New",
+      value: leadPipeline.filter((l) => l.status === "new").length,
+    },
+    {
+      label: "Contacted",
+      value: leadPipeline.filter((l) => l.status === "contacted").length,
+    },
+    {
+      label: "Interested",
+      value: leadPipeline.filter((l) => l.status === "interested").length,
+    },
+    {
+      label: "Follow-up",
+      value: leadPipeline.filter((l) => l.status === "follow_up").length,
+    },
+    {
+      label: "Closed",
+      value: leadPipeline.filter((l) => l.status === "closed").length,
+    },
+  ];
+
+  const revenueChart = last7Days.map((day) => {
+    const total = payments
+      .filter((payment) => payment.paid_at.slice(0, 10) === day.key)
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+    return { label: day.label, value: total };
+  });
+
+  const expenseChart = last7Days.map((day) => {
+    const total = expenses
+      .filter((expense) => expense.expense_date === day.key)
+      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+    return { label: day.label, value: total };
+  });
+
+  const profitChart = last7Days.map((day) => {
+    const revenue = payments
+      .filter((payment) => payment.paid_at.slice(0, 10) === day.key)
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+    const dailyExpenses = expenses
+      .filter((expense) => expense.expense_date === day.key)
+      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+    return { label: day.label, value: revenue - dailyExpenses };
+  });
+
+  const todayLabel = format(new Date(), "dd MMM");
+
+  const todayRevenue =
+    revenueChart.find((item) => item.label === todayLabel)?.value || 0;
+
+  const todayExpenses =
+    expenseChart.find((item) => item.label === todayLabel)?.value || 0;
 
   const todayProfit = todayRevenue - todayExpenses;
 
@@ -145,30 +240,16 @@ export default async function DashboardPage() {
         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
           Dashboard
         </h2>
-        <p className="text-slate-600">
-          Welcome back, {profile.full_name}.
-        </p>
+        <p className="text-slate-600">Welcome back, {profile.full_name}.</p>
+
+        {profile.role === "admin" ? (
+          <div className="mt-4">
+            <RunReminderScanButton />
+          </div>
+        ) : null}
       </div>
 
-      {profile.role === "admin" ? (
-        <div className="mt-4">
-          <RunReminderScanButton />
-        </div>
-      ) : null}
-
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-        <StatsCard
-          title="Total Leads"
-          value={String(leadsResult.count || 0)}
-          description="All visible leads"
-          tone="indigo"
-        />
-        <StatsCard
-          title="Total Customers"
-          value={String(customersResult.count || 0)}
-          description="All customer accounts"
-          tone="emerald"
-        />
         <StatsCard
           title="Revenue"
           value={formatCurrency(todayRevenue)}
@@ -185,14 +266,37 @@ export default async function DashboardPage() {
           title="Profit"
           value={formatCurrency(todayProfit)}
           description="Revenue minus expenses"
-          tone="slate"
+          tone="emerald"
         />
         <StatsCard
           title="Pending Invoices"
           value={String(pendingInvoices)}
-          description="Pending and partial invoices"
+          description="Pending and partial"
           tone="slate"
         />
+        <StatsCard
+          title="Overdue Invoices"
+          value={String(overdueInvoices)}
+          description="Need attention"
+          tone="rose"
+        />
+        <StatsCard
+          title="Total Leads"
+          value={String(leadsResult.count || 0)}
+          description="All visible leads"
+          tone="indigo"
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <AnalyticsChart title="Revenue Trend (7 days)" data={revenueChart} />
+        <AnalyticsChart title="Expense Trend (7 days)" data={expenseChart} />
+        <AnalyticsChart title="Profit Trend (7 days)" data={profitChart} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SummaryGrid title="Lead Pipeline Summary" items={leadSummary} />
+        <SummaryGrid title="Invoice Status Summary" items={invoiceSummary} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
