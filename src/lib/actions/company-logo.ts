@@ -7,6 +7,7 @@ import { uploadFileToStorage } from "@/lib/storage/upload-file";
 
 type CompanySettingsRow = {
   id: string;
+  logo_url: string | null;
 };
 
 export async function uploadCompanyLogoAction(formData: FormData) {
@@ -31,7 +32,7 @@ export async function uploadCompanyLogoAction(formData: FormData) {
 
   const { data: settingsData } = await (supabase as any)
     .from("company_settings")
-    .select("id")
+    .select("id, logo_url")
     .limit(1)
     .maybeSingle();
 
@@ -61,6 +62,46 @@ export async function uploadCompanyLogoAction(formData: FormData) {
   revalidatePath("/quotations");
   revalidatePath("/payments/invoices");
   revalidatePath("/payments/receipts");
+  revalidatePath("/support");
+  revalidatePath("/customers");
+
+  return { success: true };
+}
+
+export async function deleteCompanyLogoAction() {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: settingsData } = await (supabase as any)
+    .from("company_settings")
+    .select("id, logo_url")
+    .limit(1)
+    .maybeSingle();
+
+  const settings = settingsData as CompanySettingsRow | null;
+
+  if (!settings?.id) {
+    return { error: "Company settings record not found" };
+  }
+
+  const { error } = await (supabase as any)
+    .from("company_settings")
+    .update({
+      logo_url: null,
+    })
+    .eq("id", settings.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/settings/company");
+  revalidatePath("/dashboard");
+  revalidatePath("/quotations");
+  revalidatePath("/payments/invoices");
+  revalidatePath("/payments/receipts");
+  revalidatePath("/support");
+  revalidatePath("/customers");
 
   return { success: true };
 }

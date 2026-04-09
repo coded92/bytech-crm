@@ -22,7 +22,13 @@ type SupportTicketRow = {
   id: string;
   title: string;
   ticket_number: string;
-  issue_type: "hardware" | "software" | "network" | "training" | "billing" | "other";
+  issue_type:
+    | "hardware"
+    | "software"
+    | "network"
+    | "training"
+    | "billing"
+    | "other";
   priority: "low" | "medium" | "high" | "urgent";
   status: "open" | "in_progress" | "resolved" | "closed";
   description: string | null;
@@ -221,7 +227,11 @@ export default async function SupportDetailsPage({
             </CardHeader>
             <CardContent className="space-y-4">
               <SupportAttachmentUploadForm ticketId={ticket.id} />
-              <AttachmentList attachments={attachments} />
+              <AttachmentList
+                attachments={attachments}
+                canDelete={true}
+                revalidatePaths={[`/support/${ticket.id}`]}
+              />
             </CardContent>
           </Card>
 

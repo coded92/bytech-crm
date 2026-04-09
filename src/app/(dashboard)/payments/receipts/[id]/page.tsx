@@ -149,7 +149,11 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <ProofOfPaymentUploadForm receiptId={receipt.id} />
-          <AttachmentList attachments={attachments} />
+          <AttachmentList
+            attachments={attachments}
+            canDelete={true}
+            revalidatePaths={[`/payments/receipts/${receipt.id}`]}
+          />
         </CardContent>
       </Card>
     </div>
