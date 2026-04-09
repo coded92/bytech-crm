@@ -21,3 +21,5 @@ export const createDeploymentSchema = z.object({
   go_live_date: z.string().optional(),
   notes: z.string().optional(),
 });
+
+export const updateDeploymentSchema = createDeploymentSchema;

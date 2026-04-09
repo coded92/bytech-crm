@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
@@ -5,6 +6,7 @@ import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
 import { AssetConditionBadge } from "@/components/assets/asset-condition-badge";
 import { RepairHistoryForm } from "@/components/assets/repair-history-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 type AssetDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -125,6 +127,9 @@ export default async function AssetDetailsPage({
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <AssetConditionBadge condition={asset.condition} />
           <AssetStatusBadge status={asset.status} />
+          <Button asChild variant="outline">
+            <Link href={`/assets/${asset.id}/edit`}>Edit Asset</Link>
+          </Button>
         </div>
       </div>
 
@@ -142,9 +147,18 @@ export default async function AssetDetailsPage({
                 label="Device Type"
                 value={asset.device_type.replaceAll("_", " ")}
               />
-              <InfoItem label="Purchase Date" value={formatDate(asset.purchase_date)} />
-              <InfoItem label="Customer" value={asset.customer?.company_name || "-"} />
-              <InfoItem label="Branch" value={asset.branch?.branch_name || "-"} />
+              <InfoItem
+                label="Purchase Date"
+                value={formatDate(asset.purchase_date)}
+              />
+              <InfoItem
+                label="Customer"
+                value={asset.customer?.company_name || "-"}
+              />
+              <InfoItem
+                label="Branch"
+                value={asset.branch?.branch_name || "-"}
+              />
               <InfoItem
                 label="Deployment"
                 value={asset.deployment?.deployment_number || "-"}
@@ -173,7 +187,8 @@ export default async function AssetDetailsPage({
                           {item.repair_title}
                         </p>
                         <p className="mt-1 text-xs capitalize text-slate-500">
-                          {item.repair_type.replaceAll("_", " ")} · {item.repair_status.replaceAll("_", " ")}
+                          {item.repair_type.replaceAll("_", " ")} ·{" "}
+                          {item.repair_status.replaceAll("_", " ")}
                         </p>
                       </div>
 
@@ -223,10 +238,19 @@ export default async function AssetDetailsPage({
             </CardHeader>
 
             <CardContent className="space-y-3 text-sm">
-              <SummaryItem label="Condition" value={asset.condition.replaceAll("_", " ")} />
+              <SummaryItem
+                label="Condition"
+                value={asset.condition.replaceAll("_", " ")}
+              />
               <SummaryItem label="Status" value={asset.status} />
-              <SummaryItem label="Created" value={formatDateTime(asset.created_at)} />
-              <SummaryItem label="Updated" value={formatDateTime(asset.updated_at)} />
+              <SummaryItem
+                label="Created"
+                value={formatDateTime(asset.created_at)}
+              />
+              <SummaryItem
+                label="Updated"
+                value={formatDateTime(asset.updated_at)}
+              />
             </CardContent>
           </Card>
         </div>

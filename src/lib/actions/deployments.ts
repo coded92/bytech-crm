@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { createDeploymentSchema } from "@/lib/validations/deployment";
+import {
+  createDeploymentSchema,
+  updateDeploymentSchema,
+} from "@/lib/validations/deployment";
 import type { Database } from "@/types/database";
 
 type AdminProfile = {
@@ -23,6 +26,11 @@ type BranchInsertResult = {
 
 type DeploymentInsertResult = {
   id: string;
+};
+
+type ExistingDeploymentRow = {
+  id: string;
+  branch_id: string | null;
 };
 
 export async function createDeploymentAction(formData: FormData) {
@@ -116,4 +124,92 @@ export async function createDeploymentAction(formData: FormData) {
 
   revalidatePath("/deployments");
   redirect(`/deployments/${deployment.id}`);
+}
+
+export async function updateDeploymentAction(
+  deploymentId: string,
+  formData: FormData
+) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const parsed = updateDeploymentSchema.safeParse({
+    customer_id: formData.get("customer_id"),
+    branch_name: formData.get("branch_name"),
+    contact_person: formData.get("contact_person") || undefined,
+    phone: formData.get("phone") || undefined,
+    address: formData.get("address") || undefined,
+    city: formData.get("city") || undefined,
+    state: formData.get("state") || undefined,
+    deployment_type: formData.get("deployment_type"),
+    terminal_count: formData.get("terminal_count"),
+    deployment_status: formData.get("deployment_status"),
+    deployed_by: formData.get("deployed_by") || undefined,
+    install_date: formData.get("install_date") || undefined,
+    go_live_date: formData.get("go_live_date") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid deployment data",
+    };
+  }
+
+  const values = parsed.data;
+
+  const { data: deploymentData } = await (supabase as any)
+    .from("pos_deployments")
+    .select("id, branch_id")
+    .eq("id", deploymentId)
+    .maybeSingle();
+
+  const existing = deploymentData as ExistingDeploymentRow | null;
+
+  if (!existing) {
+    return { error: "Deployment not found" };
+  }
+
+  if (existing.branch_id) {
+    const { error: branchUpdateError } = await (supabase as any)
+      .from("customer_branches")
+      .update({
+        customer_id: values.customer_id,
+        branch_name: values.branch_name,
+        contact_person: values.contact_person || null,
+        phone: values.phone || null,
+        address: values.address || null,
+        city: values.city || null,
+        state: values.state || null,
+      })
+      .eq("id", existing.branch_id);
+
+    if (branchUpdateError) {
+      return { error: branchUpdateError.message };
+    }
+  }
+
+  const { error } = await (supabase as any)
+    .from("pos_deployments")
+    .update({
+      customer_id: values.customer_id,
+      deployment_type: values.deployment_type,
+      terminal_count: values.terminal_count,
+      deployment_status: values.deployment_status,
+      deployed_by: values.deployed_by || null,
+      install_date: values.install_date || null,
+      go_live_date: values.go_live_date || null,
+      notes: values.notes || null,
+    })
+    .eq("id", deploymentId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/deployments");
+  revalidatePath(`/deployments/${deploymentId}`);
+  revalidatePath(`/deployments/${deploymentId}/edit`);
+
+  redirect(`/deployments/${deploymentId}`);
 }

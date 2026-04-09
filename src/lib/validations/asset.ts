@@ -11,3 +11,5 @@ export const createAssetSchema = z.object({
   purchase_date: z.string().optional(),
   notes: z.string().optional(),
 });
+
+export const updateAssetSchema = createAssetSchema;

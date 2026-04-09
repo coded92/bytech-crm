@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { DeploymentStatusBadge } from "@/components/deployments/deployment-status-badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type DeploymentDetailsPageProps = {
@@ -70,11 +72,18 @@ export default async function DeploymentDetailsPage({
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             {deployment.deployment_number}
           </h2>
-          <p className="text-slate-600">{deployment.customer?.company_name || "-"}</p>
+          <p className="text-slate-600">
+            {deployment.customer?.company_name || "-"}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <DeploymentStatusBadge status={deployment.deployment_status} />
+          <Button asChild variant="outline">
+            <Link href={`/deployments/${deployment.id}/edit`}>
+              Edit Deployment
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -88,11 +97,17 @@ export default async function DeploymentDetailsPage({
             <CardContent className="grid gap-4 md:grid-cols-2">
               <InfoItem label="Deployment Number" value={deployment.deployment_number} />
               <InfoItem label="Customer" value={deployment.customer?.company_name || "-"} />
-              <InfoItem label="Deployment Type" value={deployment.deployment_type.replaceAll("_", " ")} />
+              <InfoItem
+                label="Deployment Type"
+                value={deployment.deployment_type.replaceAll("_", " ")}
+              />
               <InfoItem label="Terminal Count" value={String(deployment.terminal_count)} />
               <InfoItem label="Install Date" value={formatDate(deployment.install_date)} />
               <InfoItem label="Go Live Date" value={formatDate(deployment.go_live_date)} />
-              <InfoItem label="Assigned Staff" value={deployment.deployed_profile?.full_name || "-"} />
+              <InfoItem
+                label="Assigned Staff"
+                value={deployment.deployed_profile?.full_name || "-"}
+              />
               <InfoItem label="Status" value={deployment.deployment_status} />
             </CardContent>
           </Card>
