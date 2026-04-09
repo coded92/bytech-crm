@@ -1,6 +1,8 @@
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getCompanySettings } from "@/lib/company/get-company-settings";
 import { CompanySettingsForm } from "@/components/settings/company-settings-form";
+import { CompanyLogoUploadForm } from "@/components/settings/company-logo-upload-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function CompanySettingsPage() {
   await requireAdmin();
@@ -16,6 +18,25 @@ export default async function CompanySettingsPage() {
           Manage company profile and branding for documents.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Logo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {settings.logo_url ? (
+            <img
+              src={settings.logo_url}
+              alt="Company logo"
+              className="h-20 w-auto rounded-md border border-slate-200"
+            />
+          ) : (
+            <p className="text-sm text-slate-500">No logo uploaded yet.</p>
+          )}
+
+          <CompanyLogoUploadForm />
+        </CardContent>
+      </Card>
 
       <CompanySettingsForm initialValues={settings} />
     </div>

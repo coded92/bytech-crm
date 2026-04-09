@@ -43,6 +43,13 @@ export async function DocumentShell({
           <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-emerald-500 px-8 py-8 text-white">
             <div className="flex items-start justify-between gap-6">
               <div>
+                {settings.logo_url ? (
+                  <img
+                    src={settings.logo_url}
+                    alt="Company logo"
+                    className="mb-4 h-14 w-auto rounded-md bg-white p-1"
+                  />
+                ) : null}
                 <h2 className="text-2xl font-bold">
                   {settings.company_name}
                 </h2>

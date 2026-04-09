@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDateTime } from "@/lib/utils/format-date";
-import { PrintReceiptButton } from "@/components/payments/print-receipt-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProofOfPaymentUploadForm } from "@/components/payments/proof-of-payment-upload-form";
+import { AttachmentList } from "@/components/shared/attachment-list";
 
 type ReceiptPageProps = {
   params: Promise<{ id: string }>;
@@ -31,6 +32,16 @@ type ReceiptRow = {
   } | null;
 };
 
+type AttachmentRow = {
+  id: string;
+  file_name: string;
+  file_path: string;
+  bucket_name: string;
+  mime_type: string | null;
+  file_size: number | null;
+  created_at: string;
+};
+
 export default async function ReceiptPage({ params }: ReceiptPageProps) {
   const { id } = await params;
   const supabase = await createClient();
@@ -39,21 +50,34 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
     notFound();
   }
 
-  const { data: receiptData } = await supabase
-    .from("receipts")
-    .select(`
-      *,
-      customer:customers(id, company_name, contact_person, email, phone),
-      invoice:payment_invoices(id, invoice_number)
-    `)
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: receiptData }, { data: attachmentsData }] = await Promise.all([
+    supabase
+      .from("receipts")
+      .select(`
+        *,
+        customer:customers(id, company_name, contact_person, email, phone),
+        invoice:payment_invoices(id, invoice_number)
+      `)
+      .eq("id", id)
+      .maybeSingle(),
+
+    (supabase as any)
+      .from("file_attachments")
+      .select(
+        "id, file_name, file_path, bucket_name, mime_type, file_size, created_at"
+      )
+      .eq("related_table", "receipts")
+      .eq("related_id", id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const receipt = receiptData as ReceiptRow | null;
 
   if (!receipt) {
     notFound();
   }
+
+  const attachments = (attachmentsData ?? []) as AttachmentRow[];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -65,7 +89,6 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
           <p className="text-slate-600">Payment confirmation</p>
         </div>
 
-        {/* ✅ UPDATED BUTTONS */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {receipt.invoice?.id ? (
             <Button asChild variant="outline">
@@ -75,13 +98,11 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
             </Button>
           ) : null}
 
-          {/* NEW PRINT VERSION PAGE */}
           <Button asChild variant="outline">
             <Link href={`/payments/receipts/${receipt.id}/print`}>
               Print Version
             </Link>
           </Button>
-
         </div>
       </div>
 
@@ -121,6 +142,16 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
           <InfoItem label="Notes" value={receipt.notes ?? "-"} />
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Proof of Payment</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ProofOfPaymentUploadForm receiptId={receipt.id} />
+          <AttachmentList attachments={attachments} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -140,4 +171,4 @@ function InfoItem({
       <p className="mt-1 text-sm text-slate-900">{value ?? "-"}</p>
     </div>
   );
-} 
+}

@@ -4,9 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/utils/format-date";
 import { SupportStatusBadge } from "@/components/support/support-status-badge";
 import { SupportUpdateForm } from "@/components/support/support-update-form";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SupportAttachmentUploadForm } from "@/components/support/support-attachment-upload-form";
+import { AttachmentList } from "@/components/shared/attachment-list";
 
 type SupportDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -36,13 +37,27 @@ type SupportTicketRow = {
   creator: { full_name: string | null } | null;
 };
 
+type AttachmentRow = {
+  id: string;
+  file_name: string;
+  file_path: string;
+  bucket_name: string;
+  mime_type: string | null;
+  file_size: number | null;
+  created_at: string;
+};
+
 export default async function SupportDetailsPage({
   params,
 }: SupportDetailsPageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: ticketData }, { data: staffData }] = await Promise.all([
+  const [
+    { data: ticketData },
+    { data: staffData },
+    { data: attachmentsData },
+  ] = await Promise.all([
     supabase
       .from("support_tickets")
       .select(`
@@ -65,11 +80,21 @@ export default async function SupportDetailsPage({
       `)
       .eq("id", id)
       .maybeSingle(),
+
     supabase
       .from("profiles")
       .select("id, full_name")
       .eq("is_active", true)
       .order("full_name"),
+
+    (supabase as any)
+      .from("file_attachments")
+      .select(
+        "id, file_name, file_path, bucket_name, mime_type, file_size, created_at"
+      )
+      .eq("related_table", "support_tickets")
+      .eq("related_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!ticketData) {
@@ -78,6 +103,7 @@ export default async function SupportDetailsPage({
 
   const ticket = ticketData as SupportTicketRow;
   const staff = (staffData ?? []) as StaffOption[];
+  const attachments = (attachmentsData ?? []) as AttachmentRow[];
 
   return (
     <div className="space-y-6">
@@ -91,11 +117,13 @@ export default async function SupportDetailsPage({
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <SupportStatusBadge status={ticket.status} />
+
           {ticket.customer?.id ? (
             <Button asChild variant="outline">
               <Link href={`/customers/${ticket.customer.id}`}>View Customer</Link>
             </Button>
           ) : null}
+
           {ticket.asset?.id ? (
             <Button asChild variant="outline">
               <Link href={`/assets/${ticket.asset.id}`}>View Asset</Link>
@@ -119,16 +147,37 @@ export default async function SupportDetailsPage({
 
             <CardContent className="grid gap-4 md:grid-cols-2">
               <InfoItem label="Ticket Number" value={ticket.ticket_number} />
-              <InfoItem label="Customer" value={ticket.customer?.company_name || "-"} />
-              <InfoItem label="Linked Asset" value={ticket.asset?.asset_tag || "-"} />
+              <InfoItem
+                label="Customer"
+                value={ticket.customer?.company_name || "-"}
+              />
+              <InfoItem
+                label="Linked Asset"
+                value={ticket.asset?.asset_tag || "-"}
+              />
               <InfoItem label="Issue Type" value={ticket.issue_type} />
               <InfoItem label="Priority" value={ticket.priority} />
               <InfoItem label="Status" value={ticket.status} />
-              <InfoItem label="Assigned To" value={ticket.assigned_profile?.full_name || "-"} />
-              <InfoItem label="Created By" value={ticket.creator?.full_name || "-"} />
-              <InfoItem label="Created At" value={formatDateTime(ticket.created_at)} />
-              <InfoItem label="Updated At" value={formatDateTime(ticket.updated_at)} />
-              <InfoItem label="Resolved At" value={formatDateTime(ticket.resolved_at)} />
+              <InfoItem
+                label="Assigned To"
+                value={ticket.assigned_profile?.full_name || "-"}
+              />
+              <InfoItem
+                label="Created By"
+                value={ticket.creator?.full_name || "-"}
+              />
+              <InfoItem
+                label="Created At"
+                value={formatDateTime(ticket.created_at)}
+              />
+              <InfoItem
+                label="Updated At"
+                value={formatDateTime(ticket.updated_at)}
+              />
+              <InfoItem
+                label="Resolved At"
+                value={formatDateTime(ticket.resolved_at)}
+              />
             </CardContent>
           </Card>
 
@@ -168,6 +217,16 @@ export default async function SupportDetailsPage({
 
           <Card>
             <CardHeader>
+              <CardTitle>Attachments</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SupportAttachmentUploadForm ticketId={ticket.id} />
+              <AttachmentList attachments={attachments} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Quick Summary</CardTitle>
             </CardHeader>
 
@@ -183,7 +242,13 @@ export default async function SupportDetailsPage({
   );
 }
 
-function InfoItem({ label, value }: { label: string; value?: string | null }) {
+function InfoItem({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -194,7 +259,13 @@ function InfoItem({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function SummaryItem({ label, value }: { label: string; value: string }) {
+function SummaryItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-slate-500">{label}</span>

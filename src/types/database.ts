@@ -872,6 +872,72 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["expenses"]["Insert"]>;
       };
 
+      company_settings: {
+        Row: {
+          id: string;
+          company_name: string;
+          brand_name: string | null;
+          email: string | null;
+          phone: string | null;
+          website: string | null;
+          address: string | null;
+          city: string | null;
+          state: string | null;
+          country: string | null;
+          logo_url: string | null;
+          currency_symbol: string;
+          document_footer: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_name: string;
+          brand_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          website?: string | null;
+          address?: string | null;
+          city?: string | null;
+          state?: string | null;
+          country?: string | null;
+          logo_url?: string | null;
+          currency_symbol?: string;
+          document_footer?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["company_settings"]["Insert"]>;
+      };
+
+      file_attachments: {
+        Row: {
+          id: string;
+          related_table: string;
+          related_id: string;
+          bucket_name: string;
+          file_path: string;
+          file_name: string;
+          mime_type: string | null;
+          file_size: number | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          related_table: string;
+          related_id: string;
+          bucket_name: string;
+          file_path: string;
+          file_name: string;
+          mime_type?: string | null;
+          file_size?: number | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["file_attachments"]["Insert"]>;
+      };
+
       daily_reports: {
         Row: {
           id: string;
