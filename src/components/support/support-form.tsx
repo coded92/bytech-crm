@@ -21,12 +21,19 @@ type StaffOption = {
   full_name: string;
 };
 
+type AssetOption = {
+  id: string;
+  asset_tag: string;
+};
+
 export function SupportForm({
   customers,
   staff,
+  assets,
 }: {
   customers: CustomerOption[];
   staff: StaffOption[];
+  assets: AssetOption[];
 }) {
   return (
     <Card>
@@ -59,6 +66,23 @@ export function SupportForm({
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.company_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="asset_id">Related Asset</Label>
+              <select
+                id="asset_id"
+                name="asset_id"
+                defaultValue=""
+                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">No linked asset</option>
+                {assets.map((asset) => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.asset_tag}
                   </option>
                 ))}
               </select>

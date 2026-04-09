@@ -370,7 +370,7 @@ export interface Database {
         };
       };
 
-            support_tickets: {
+      support_tickets: {
         Row: {
           id: string;
           ticket_number: string;
@@ -385,6 +385,7 @@ export interface Database {
             | "other";
           priority: "low" | "medium" | "high" | "urgent";
           status: "open" | "in_progress" | "resolved" | "closed";
+          asset_id: string | null;
           description: string | null;
           assigned_to: string | null;
           created_by: string | null;
@@ -407,6 +408,7 @@ export interface Database {
             | "other";
           priority?: "low" | "medium" | "high" | "urgent";
           status?: "open" | "in_progress" | "resolved" | "closed";
+          asset_id?: string | null;
           description?: string | null;
           assigned_to?: string | null;
           created_by?: string | null;
@@ -429,6 +431,7 @@ export interface Database {
             | "other";
           priority?: "low" | "medium" | "high" | "urgent";
           status?: "open" | "in_progress" | "resolved" | "closed";
+          asset_id?: string | null;
           description?: string | null;
           assigned_to?: string | null;
           created_by?: string | null;
@@ -437,6 +440,38 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+      };
+
+      asset_repair_history: {
+        Row: {
+          id: string;
+          asset_id: string;
+          support_ticket_id: string | null;
+          repair_title: string;
+          repair_type: "inspection" | "repair" | "replacement" | "maintenance" | "other";
+          repair_status: "pending" | "in_progress" | "completed" | "cancelled";
+          technician_id: string | null;
+          cost: number;
+          notes: string | null;
+          repair_date: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          asset_id: string;
+          support_ticket_id?: string | null;
+          repair_title: string;
+          repair_type: "inspection" | "repair" | "replacement" | "maintenance" | "other";
+          repair_status?: "pending" | "in_progress" | "completed" | "cancelled";
+          technician_id?: string | null;
+          cost?: number;
+          notes?: string | null;
+          repair_date?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["asset_repair_history"]["Insert"]>;
       };
 
       quotations: {

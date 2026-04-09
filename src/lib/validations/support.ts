@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createSupportTicketSchema = z.object({
   customer_id: z.string().min(1, "Customer is required"),
+  asset_id: z.string().optional(),
   title: z.string().min(3, "Ticket title is required"),
   issue_type: z.enum([
     "hardware",

@@ -27,6 +27,7 @@ export async function createSupportTicketAction(formData: FormData) {
 
   const parsed = createSupportTicketSchema.safeParse({
     customer_id: formData.get("customer_id"),
+    asset_id: formData.get("asset_id") || undefined,
     title: formData.get("title"),
     issue_type: formData.get("issue_type"),
     priority: formData.get("priority"),
@@ -42,6 +43,7 @@ export async function createSupportTicketAction(formData: FormData) {
 
   const insertPayload = {
     customer_id: values.customer_id,
+    asset_id: values.asset_id || null,
     title: values.title,
     issue_type: values.issue_type,
     priority: values.priority,
@@ -85,6 +87,11 @@ export async function createSupportTicketAction(formData: FormData) {
 
   revalidatePath("/support");
   revalidatePath(`/customers/${values.customer_id}`);
+
+  if (values.asset_id) {
+    revalidatePath(`/assets/${values.asset_id}`);
+  }
+
   redirect(`/support/${ticket.id}`);
 }
 

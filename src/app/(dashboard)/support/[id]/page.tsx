@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/utils/format-date";
 import { SupportStatusBadge } from "@/components/support/support-status-badge";
 import { SupportUpdateForm } from "@/components/support/support-update-form";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -11,36 +12,28 @@ type SupportDetailsPageProps = {
   params: Promise<{ id: string }>;
 };
 
+type StaffOption = {
+  id: string;
+  full_name: string;
+};
+
 type SupportTicketRow = {
   id: string;
-  ticket_number: string;
-  customer_id: string;
   title: string;
+  ticket_number: string;
   issue_type: "hardware" | "software" | "network" | "training" | "billing" | "other";
   priority: "low" | "medium" | "high" | "urgent";
   status: "open" | "in_progress" | "resolved" | "closed";
   description: string | null;
-  assigned_to: string | null;
-  created_by: string | null;
-  resolved_at: string | null;
   resolution_notes: string | null;
+  assigned_to: string | null;
+  resolved_at: string | null;
   created_at: string;
   updated_at: string;
-  customer?: {
-    id: string;
-    company_name: string | null;
-  } | null;
-  assigned_profile?: {
-    full_name: string | null;
-  } | null;
-  creator?: {
-    full_name: string | null;
-  } | null;
-};
-
-type StaffRow = {
-  id: string;
-  full_name: string;
+  customer: { id: string; company_name: string | null } | null;
+  asset: { id: string; asset_tag: string | null } | null;
+  assigned_profile: { full_name: string | null } | null;
+  creator: { full_name: string | null } | null;
 };
 
 export default async function SupportDetailsPage({
@@ -49,31 +42,42 @@ export default async function SupportDetailsPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const supportTicketsTable = (supabase as any).from("support_tickets");
-  const profilesTable = (supabase as any).from("profiles");
-
   const [{ data: ticketData }, { data: staffData }] = await Promise.all([
-    supportTicketsTable
+    supabase
+      .from("support_tickets")
       .select(`
-        *,
+        id,
+        title,
+        ticket_number,
+        issue_type,
+        priority,
+        status,
+        description,
+        resolution_notes,
+        assigned_to,
+        resolved_at,
+        created_at,
+        updated_at,
         customer:customers(id, company_name),
+        asset:assets(id, asset_tag),
         assigned_profile:profiles!support_tickets_assigned_to_fkey(full_name),
         creator:profiles!support_tickets_created_by_fkey(full_name)
       `)
       .eq("id", id)
-      .single(),
-    profilesTable
+      .maybeSingle(),
+    supabase
+      .from("profiles")
       .select("id, full_name")
       .eq("is_active", true)
       .order("full_name"),
   ]);
 
-  const ticket = ticketData as SupportTicketRow | null;
-  const staff = (staffData ?? []) as StaffRow[];
-
-  if (!ticket) {
+  if (!ticketData) {
     notFound();
   }
+
+  const ticket = ticketData as SupportTicketRow;
+  const staff = (staffData ?? []) as StaffOption[];
 
   return (
     <div className="space-y-6">
@@ -92,6 +96,11 @@ export default async function SupportDetailsPage({
               <Link href={`/customers/${ticket.customer.id}`}>View Customer</Link>
             </Button>
           ) : null}
+          {ticket.asset?.id ? (
+            <Button asChild variant="outline">
+              <Link href={`/assets/${ticket.asset.id}`}>View Asset</Link>
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -105,29 +114,15 @@ export default async function SupportDetailsPage({
             <CardContent className="grid gap-4 md:grid-cols-2">
               <InfoItem label="Ticket Number" value={ticket.ticket_number} />
               <InfoItem label="Customer" value={ticket.customer?.company_name || "-"} />
+              <InfoItem label="Linked Asset" value={ticket.asset?.asset_tag || "-"} />
               <InfoItem label="Issue Type" value={ticket.issue_type} />
               <InfoItem label="Priority" value={ticket.priority} />
               <InfoItem label="Status" value={ticket.status} />
-              <InfoItem
-                label="Assigned To"
-                value={ticket.assigned_profile?.full_name || "-"}
-              />
-              <InfoItem
-                label="Created By"
-                value={ticket.creator?.full_name || "-"}
-              />
-              <InfoItem
-                label="Created At"
-                value={formatDateTime(ticket.created_at)}
-              />
-              <InfoItem
-                label="Updated At"
-                value={formatDateTime(ticket.updated_at)}
-              />
-              <InfoItem
-                label="Resolved At"
-                value={formatDateTime(ticket.resolved_at)}
-              />
+              <InfoItem label="Assigned To" value={ticket.assigned_profile?.full_name || "-"} />
+              <InfoItem label="Created By" value={ticket.creator?.full_name || "-"} />
+              <InfoItem label="Created At" value={formatDateTime(ticket.created_at)} />
+              <InfoItem label="Updated At" value={formatDateTime(ticket.updated_at)} />
+              <InfoItem label="Resolved At" value={formatDateTime(ticket.resolved_at)} />
             </CardContent>
           </Card>
 
@@ -182,13 +177,7 @@ export default async function SupportDetailsPage({
   );
 }
 
-function InfoItem({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | null;
-}) {
+function InfoItem({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -199,13 +188,7 @@ function InfoItem({
   );
 }
 
-function SummaryItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-slate-500">{label}</span>

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
 import { AssetConditionBadge } from "@/components/assets/asset-condition-badge";
+import { RepairHistoryForm } from "@/components/assets/repair-history-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type AssetDetailsPageProps = {
@@ -31,37 +32,83 @@ type AssetRow = {
   } | null;
 };
 
+type RepairHistoryRow = {
+  id: string;
+  repair_title: string;
+  repair_type: "inspection" | "repair" | "replacement" | "maintenance" | "other";
+  repair_status: "pending" | "in_progress" | "completed" | "cancelled";
+  cost: number;
+  repair_date: string;
+  notes: string | null;
+  technician: {
+    full_name: string | null;
+  } | null;
+  support_ticket: {
+    ticket_number: string | null;
+  } | null;
+};
+
+type StaffOption = {
+  id: string;
+  full_name: string;
+};
+
 export default async function AssetDetailsPage({
   params,
 }: AssetDetailsPageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("assets")
-    .select(`
-      id,
-      asset_tag,
-      serial_number,
-      device_type,
-      condition,
-      status,
-      purchase_date,
-      notes,
-      created_at,
-      updated_at,
-      customer:customers(company_name),
-      branch:customer_branches(branch_name),
-      deployment:pos_deployments(deployment_number)
-    `)
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: assetData }, { data: historyData }, { data: staffData }] =
+    await Promise.all([
+      supabase
+        .from("assets")
+        .select(`
+          id,
+          asset_tag,
+          serial_number,
+          device_type,
+          condition,
+          status,
+          purchase_date,
+          notes,
+          created_at,
+          updated_at,
+          customer:customers(company_name),
+          branch:customer_branches(branch_name),
+          deployment:pos_deployments(deployment_number)
+        `)
+        .eq("id", id)
+        .maybeSingle(),
+      supabase
+        .from("asset_repair_history")
+        .select(`
+          id,
+          repair_title,
+          repair_type,
+          repair_status,
+          cost,
+          repair_date,
+          notes,
+          technician:profiles!asset_repair_history_technician_id_fkey(full_name),
+          support_ticket:support_tickets(ticket_number)
+        `)
+        .eq("asset_id", id)
+        .order("repair_date", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("is_active", true)
+        .order("full_name"),
+    ]);
 
-  if (!data) {
+  if (!assetData) {
     notFound();
   }
 
-  const asset = data as AssetRow;
+  const asset = assetData as AssetRow;
+  const history = (historyData ?? []) as RepairHistoryRow[];
+  const staff = (staffData ?? []) as StaffOption[];
 
   return (
     <div className="space-y-6">
@@ -108,6 +155,47 @@ export default async function AssetDetailsPage({
 
           <Card>
             <CardHeader>
+              <CardTitle>Repair History</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {history.length === 0 ? (
+                <p className="text-sm text-slate-500">No repair history found.</p>
+              ) : (
+                history.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-slate-200 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {item.repair_title}
+                        </p>
+                        <p className="mt-1 text-xs capitalize text-slate-500">
+                          {item.repair_type.replaceAll("_", " ")} · {item.repair_status.replaceAll("_", " ")}
+                        </p>
+                      </div>
+
+                      <p className="text-sm font-medium text-slate-900">
+                        {item.cost}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 space-y-1 text-sm text-slate-600">
+                      <p>Date: {formatDate(item.repair_date)}</p>
+                      <p>Technician: {item.technician?.full_name || "-"}</p>
+                      <p>Ticket: {item.support_ticket?.ticket_number || "-"}</p>
+                      <p>Notes: {item.notes || "-"}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Notes</CardTitle>
             </CardHeader>
 
@@ -120,6 +208,15 @@ export default async function AssetDetailsPage({
         </div>
 
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add Repair History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RepairHistoryForm assetId={asset.id} staff={staff} />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Quick Summary</CardTitle>
