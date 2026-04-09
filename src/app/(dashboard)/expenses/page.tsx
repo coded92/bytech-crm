@@ -1,44 +1,53 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/require-profile";
-import { ExpenseTable } from "@/components/expenses/expense-table";
+import { InvoiceTable } from "@/components/payments/invoice-table";
 import { Button } from "@/components/ui/button";
 
-export default async function ExpensesPage() {
+export default async function InvoicesPage() {
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  const { data: expenses, error } = await supabase
-    .from("expenses")
-    .select("id, title, amount, category, expense_date, notes")
-    .order("expense_date", { ascending: false })
+  const { data: invoices, error } = await supabase
+    .from("payment_invoices")
+    .select(`
+      id,
+      invoice_number,
+      invoice_type,
+      amount,
+      amount_paid,
+      balance,
+      due_date,
+      status,
+      customer:customers(company_name)
+    `)
     .order("created_at", { ascending: false });
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Expenses
+            Invoices
           </h2>
           <p className="text-slate-600">
-            Track company spending and operational costs.
+            Manage setup fees, subscriptions, and custom billing.
           </p>
         </div>
 
         {profile.role === "admin" ? (
           <Button asChild>
-            <Link href="/expenses/new">Add Expense</Link>
+            <Link href="/payments/invoices/new">Create Invoice</Link>
           </Button>
         ) : null}
       </div>
 
       {error ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          Failed to load expenses: {error.message}
+          Failed to load invoices: {error.message}
         </div>
       ) : (
-        <ExpenseTable expenses={expenses || []} />
+        <InvoiceTable invoices={invoices || []} />
       )}
     </div>
   );

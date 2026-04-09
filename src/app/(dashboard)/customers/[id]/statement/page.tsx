@@ -4,11 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { ExportCsvButton } from "@/components/shared/export-csv-button";
+import { DateRangeFilter } from "@/components/shared/date-range-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type CustomerStatementPageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+  }>;
 };
 
 type CustomerRow = {
@@ -41,48 +46,64 @@ type ReceiptRow = {
 
 export default async function CustomerStatementPage({
   params,
+  searchParams,
 }: CustomerStatementPageProps) {
   const { id } = await params;
+  const { from, to } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: customerData }, { data: invoicesData }, { data: receiptsData }] =
-    await Promise.all([
-      supabase
-        .from("customers")
-        .select("id, company_name, contact_person")
-        .eq("id", id)
-        .maybeSingle(),
-      supabase
-        .from("payment_invoices")
-        .select(`
-          id,
-          invoice_number,
-          amount,
-          amount_paid,
-          balance,
-          status,
-          due_date,
-          created_at
-        `)
-        .eq("customer_id", id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("receipts")
-        .select(`
-          id,
-          receipt_number,
-          amount_received,
-          payment_date,
-          payment_method,
-          invoice:payment_invoices(invoice_number)
-        `)
-        .eq("customer_id", id)
-        .order("payment_date", { ascending: false }),
-    ]);
+  const { data: customerData } = await supabase
+    .from("customers")
+    .select("id, company_name, contact_person")
+    .eq("id", id)
+    .maybeSingle();
 
   if (!customerData) {
     notFound();
   }
+
+  let invoicesQuery = supabase
+    .from("payment_invoices")
+    .select(`
+      id,
+      invoice_number,
+      amount,
+      amount_paid,
+      balance,
+      status,
+      due_date,
+      created_at
+    `)
+    .eq("customer_id", id)
+    .order("created_at", { ascending: false });
+
+  let receiptsQuery = supabase
+    .from("receipts")
+    .select(`
+      id,
+      receipt_number,
+      amount_received,
+      payment_date,
+      payment_method,
+      invoice:payment_invoices(invoice_number)
+    `)
+    .eq("customer_id", id)
+    .order("payment_date", { ascending: false });
+
+  if (from) {
+    invoicesQuery = invoicesQuery.gte("created_at", `${from}T00:00:00.000Z`);
+    receiptsQuery = receiptsQuery.gte("payment_date", `${from}T00:00:00.000Z`);
+  }
+
+  if (to) {
+    invoicesQuery = invoicesQuery.lte("created_at", `${to}T23:59:59.999Z`);
+    receiptsQuery = receiptsQuery.lte("payment_date", `${to}T23:59:59.999Z`);
+  }
+
+  const [{ data: invoicesData }, { data: receiptsData }] = await Promise.all([
+    invoicesQuery,
+    receiptsQuery,
+  ]);
 
   const customer = customerData as CustomerRow;
   const invoices = (invoicesData ?? []) as InvoiceRow[];
@@ -121,6 +142,8 @@ export default async function CustomerStatementPage({
     ]),
   ];
 
+  const basePath = `/customers/${customer.id}/statement`;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -154,6 +177,8 @@ export default async function CustomerStatementPage({
           </Button>
         </div>
       </div>
+
+      <DateRangeFilter actionPath={basePath} from={from} to={to} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

@@ -9,12 +9,21 @@ import { RunReminderScanButton } from "@/components/dashboard/run-reminder-scan-
 import { AnalyticsChart } from "@/components/dashboard/analytics-chart";
 import { SummaryGrid } from "@/components/dashboard/summary-grid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardExports } from "@/components/dashboard/dashboard-exports";
 
 type InvoiceStatus = "pending" | "partial" | "paid" | "overdue" | "waived";
 
 type InvoiceRow = {
   id: string;
+  invoice_number: string;
+  invoice_type: string | null;
+  amount: number | null;
+  amount_paid: number | null;
+  balance: number | null;
   status: InvoiceStatus;
+  customer: {
+    company_name: string | null;
+  } | null;
 };
 
 type LeadStatus = "new" | "contacted" | "interested" | "follow_up" | "closed";
@@ -29,8 +38,11 @@ type PaymentRow = {
 };
 
 type ExpenseRow = {
+  title?: string | null;
+  category?: string | null;
   amount: number | null;
   expense_date: string;
+  notes?: string | null;
 };
 
 function buildLast7DaysLabels() {
@@ -50,11 +62,12 @@ export default async function DashboardPage() {
   await supabase.rpc("mark_overdue_invoices");
 
   const last7Days = buildLast7DaysLabels();
-  const startDate = last7Days[0]?.key;
+  const startDate = last7Days[0]?.key ?? format(subDays(new Date(), 6), "yyyy-MM-dd");
+  const todayStart = `${format(new Date(), "yyyy-MM-dd")}T00:00:00.000Z`;
+  const todayEnd = `${format(new Date(), "yyyy-MM-dd")}T23:59:59.999Z`;
 
   const [
     leadsResult,
-    customersResult,
     invoicesResult,
     paymentsResult,
     expensesResult,
@@ -69,14 +82,18 @@ export default async function DashboardPage() {
           .select("id", { count: "exact", head: true })
           .or(`assigned_to.eq.${profile.id},created_by.eq.${profile.id}`),
 
-    profile.role === "admin"
-      ? supabase.from("customers").select("id", { count: "exact", head: true })
-      : supabase
-          .from("customers")
-          .select("id", { count: "exact", head: true })
-          .or(`account_manager_id.eq.${profile.id},created_by.eq.${profile.id}`),
-
-    supabase.from("payment_invoices").select("id, status"),
+    supabase
+      .from("payment_invoices")
+      .select(`
+        id,
+        invoice_number,
+        invoice_type,
+        amount,
+        amount_paid,
+        balance,
+        status,
+        customer:customers(company_name)
+      `),
 
     supabase
       .from("payment_transactions")
@@ -85,7 +102,7 @@ export default async function DashboardPage() {
 
     supabase
       .from("expenses")
-      .select("amount, expense_date")
+      .select("title, category, amount, expense_date, notes")
       .gte("expense_date", startDate),
 
     profile.role === "admin"
@@ -99,8 +116,8 @@ export default async function DashboardPage() {
             due_date,
             assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
           `)
-          .gte("due_date", `${format(new Date(), "yyyy-MM-dd")}T00:00:00.000Z`)
-          .lte("due_date", `${format(new Date(), "yyyy-MM-dd")}T23:59:59.999Z`)
+          .gte("due_date", todayStart)
+          .lte("due_date", todayEnd)
           .neq("status", "completed")
           .order("due_date", { ascending: true })
           .limit(10)
@@ -115,8 +132,8 @@ export default async function DashboardPage() {
             assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
           `)
           .eq("assigned_to", profile.id)
-          .gte("due_date", `${format(new Date(), "yyyy-MM-dd")}T00:00:00.000Z`)
-          .lte("due_date", `${format(new Date(), "yyyy-MM-dd")}T23:59:59.999Z`)
+          .gte("due_date", todayStart)
+          .lte("due_date", todayEnd)
           .neq("status", "completed")
           .order("due_date", { ascending: true })
           .limit(10),
@@ -298,6 +315,25 @@ export default async function DashboardPage() {
         <SummaryGrid title="Lead Pipeline Summary" items={leadSummary} />
         <SummaryGrid title="Invoice Status Summary" items={invoiceSummary} />
       </div>
+
+      <DashboardExports
+        invoiceRows={invoices.map((invoice) => [
+          invoice.invoice_number,
+          invoice.customer?.company_name || "",
+          invoice.invoice_type || "",
+          invoice.status,
+          invoice.amount || 0,
+          invoice.amount_paid || 0,
+          invoice.balance || 0,
+        ])}
+        expenseRows={expenses.map((expense) => [
+          expense.title || "",
+          expense.category || "",
+          expense.amount || 0,
+          expense.expense_date,
+          expense.notes || "",
+        ])}
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
