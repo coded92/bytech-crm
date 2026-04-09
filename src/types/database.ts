@@ -500,6 +500,40 @@ export interface Database {
         };
       };
 
+      assets: {
+        Row: {
+          id: string;
+          asset_tag: string;
+          serial_number: string | null;
+          customer_id: string | null;
+          branch_id: string | null;
+          deployment_id: string | null;
+          device_type: "pos_terminal" | "printer" | "scanner" | "router" | "other";
+          condition: "new" | "good" | "faulty" | "under_repair" | "retired";
+          status: "active" | "inactive" | "lost" | "retired";
+          purchase_date: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          asset_tag?: string;
+          serial_number?: string | null;
+          customer_id?: string | null;
+          branch_id?: string | null;
+          deployment_id?: string | null;
+          device_type: "pos_terminal" | "printer" | "scanner" | "router" | "other";
+          condition?: "new" | "good" | "faulty" | "under_repair" | "retired";
+          status?: "active" | "inactive" | "lost" | "retired";
+          purchase_date?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets"]["Insert"]>;
+      };
+
+
       customer_branches: {
         Row: {
           id: string;
