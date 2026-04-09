@@ -370,6 +370,75 @@ export interface Database {
         };
       };
 
+            support_tickets: {
+        Row: {
+          id: string;
+          ticket_number: string;
+          customer_id: string;
+          title: string;
+          issue_type:
+            | "hardware"
+            | "software"
+            | "network"
+            | "training"
+            | "billing"
+            | "other";
+          priority: "low" | "medium" | "high" | "urgent";
+          status: "open" | "in_progress" | "resolved" | "closed";
+          description: string | null;
+          assigned_to: string | null;
+          created_by: string | null;
+          resolved_at: string | null;
+          resolution_notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_number?: string;
+          customer_id: string;
+          title: string;
+          issue_type:
+            | "hardware"
+            | "software"
+            | "network"
+            | "training"
+            | "billing"
+            | "other";
+          priority?: "low" | "medium" | "high" | "urgent";
+          status?: "open" | "in_progress" | "resolved" | "closed";
+          description?: string | null;
+          assigned_to?: string | null;
+          created_by?: string | null;
+          resolved_at?: string | null;
+          resolution_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          ticket_number?: string;
+          customer_id?: string;
+          title?: string;
+          issue_type?:
+            | "hardware"
+            | "software"
+            | "network"
+            | "training"
+            | "billing"
+            | "other";
+          priority?: "low" | "medium" | "high" | "urgent";
+          status?: "open" | "in_progress" | "resolved" | "closed";
+          description?: string | null;
+          assigned_to?: string | null;
+          created_by?: string | null;
+          resolved_at?: string | null;
+          resolution_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+
       quotations: {
         Row: {
           id: string;

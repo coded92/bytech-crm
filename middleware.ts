@@ -53,7 +53,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/tasks") ||
     pathname.startsWith("/reports") ||
     pathname.startsWith("/payments") ||
+    pathname.startsWith("/expenses") ||
     pathname.startsWith("/notifications");
+    pathname.startsWith("/support")
     pathname.startsWith("/users");
 
   if (!user && isDashboardRoute) {
@@ -81,7 +83,9 @@ export const config = {
     "/tasks/:path*",
     "/reports/:path*",
     "/payments/:path*",
+    "/expenses/:path*",
     "/notifications/:path*",
+    "/support/:path*",
     "/users/:path*",
   ],
 };
