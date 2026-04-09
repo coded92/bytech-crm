@@ -101,6 +101,12 @@ export default async function SupportDetailsPage({
               <Link href={`/assets/${ticket.asset.id}`}>View Asset</Link>
             </Button>
           ) : null}
+
+          <Button asChild variant="outline">
+            <Link href={`/support/${ticket.id}/service-report`}>
+              Service Report
+            </Link>
+          </Button>
         </div>
       </div>
 

@@ -78,6 +78,13 @@ export default async function CustomerDetailsPage({
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <CustomerStatusBadge status={customer.status} />
+
+          <Button asChild variant="outline">
+            <Link href={`/customers/${customer.id}/statement`}>
+              Customer Statement
+            </Link>
+          </Button>
+
           {sourceLead ? (
             <Button asChild variant="outline">
               <Link href={`/leads/${sourceLead.id}`}>View Source Lead</Link>
