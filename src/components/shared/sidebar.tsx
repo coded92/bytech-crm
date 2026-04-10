@@ -10,7 +10,6 @@ import { Package } from "lucide-react";
 import { Settings } from "lucide-react";
 import { ShieldCheck } from "lucide-react";
 import { Wrench } from "lucide-react";
-import { Wrench } from "lucide-react";
 import {
   LayoutDashboard,
   Users,

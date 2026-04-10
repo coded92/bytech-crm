@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { FieldJobStatusBadge } from "@/components/field-jobs/field-job-status-badge";
+import { FieldJobPhotoUploadForm } from "@/components/field-jobs/field-job-photo-upload-form";
+import { FieldJobUpdateForm } from "@/components/field-jobs/field-job-update-form";
+import { FieldJobPhotoGallery } from "@/components/field-jobs/field-job-photo-gallery";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type FieldJobDetailsPageProps = {
@@ -46,52 +49,82 @@ type FieldJobUpdateRow = {
   creator: { full_name: string | null } | null;
 };
 
+type FieldJobPhotoRow = {
+  id: string;
+  photo_type: "before" | "after" | "inspection" | "materials" | "other";
+  caption: string | null;
+  attachment: {
+    id: string;
+    file_name: string;
+    mime_type: string | null;
+    created_at: string;
+  } | null;
+};
+
 export default async function FieldJobDetailsPage({
   params,
 }: FieldJobDetailsPageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: jobData }, { data: updatesData }] = await Promise.all([
-    supabase
-      .from("field_jobs")
-      .select(`
-        id,
-        job_number,
-        title,
-        job_type,
-        priority,
-        status,
-        scheduled_date,
-        started_at,
-        completed_at,
-        reported_issue,
-        work_done,
-        materials_used,
-        recommendation,
-        customer_feedback,
-        created_at,
-        updated_at,
-        customer:customers(company_name),
-        branch:customer_branches(branch_name),
-        asset:assets(asset_tag),
-        support_ticket:support_tickets(ticket_number),
-        assigned_engineer:profiles!field_jobs_assigned_engineer_id_fkey(full_name)
-      `)
-      .eq("id", id)
-      .maybeSingle(),
-    supabase
-      .from("field_job_updates")
-      .select(`
-        id,
-        note,
-        status,
-        created_at,
-        creator:profiles!field_job_updates_created_by_fkey(full_name)
-      `)
-      .eq("field_job_id", id)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data: jobData }, { data: updatesData }, { data: photosData }] =
+    await Promise.all([
+      supabase
+        .from("field_jobs")
+        .select(`
+          id,
+          job_number,
+          title,
+          job_type,
+          priority,
+          status,
+          scheduled_date,
+          started_at,
+          completed_at,
+          reported_issue,
+          work_done,
+          materials_used,
+          recommendation,
+          customer_feedback,
+          created_at,
+          updated_at,
+          customer:customers(company_name),
+          branch:customer_branches(branch_name),
+          asset:assets(asset_tag),
+          support_ticket:support_tickets(ticket_number),
+          assigned_engineer:profiles!field_jobs_assigned_engineer_id_fkey(full_name)
+        `)
+        .eq("id", id)
+        .maybeSingle(),
+
+      supabase
+        .from("field_job_updates")
+        .select(`
+          id,
+          note,
+          status,
+          created_at,
+          creator:profiles!field_job_updates_created_by_fkey(full_name)
+        `)
+        .eq("field_job_id", id)
+        .order("created_at", { ascending: false }),
+
+      supabase
+        .from("field_job_photos")
+        .select(`
+          id,
+          photo_type,
+          caption,
+          attachment:file_attachments!field_job_photos_file_attachment_id_fkey(
+            id,
+            file_name,
+            mime_type,
+            created_at
+          )
+        `)
+        .eq("field_job_id", id)
+        .order("created_at", { ascending: false }),
+    ]);
 
   if (!jobData) {
     notFound();
@@ -99,6 +132,7 @@ export default async function FieldJobDetailsPage({
 
   const job = jobData as FieldJobRow;
   const updates = (updatesData ?? []) as FieldJobUpdateRow[];
+  const photos = (photosData ?? []) as FieldJobPhotoRow[];
 
   return (
     <div className="space-y-6">
@@ -149,26 +183,41 @@ export default async function FieldJobDetailsPage({
 
           <Card>
             <CardHeader>
+              <CardTitle>Field Photos</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              <FieldJobPhotoUploadForm fieldJobId={job.id} />
+              <FieldJobPhotoGallery photos={photos} fieldJobId={job.id} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Job Updates</CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-4">
-              {updates.length === 0 ? (
-                <p className="text-sm text-slate-500">No updates yet.</p>
-              ) : (
-                updates.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-xl border border-slate-200 p-4"
-                  >
-                    <p className="text-sm text-slate-900">{item.note}</p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      {item.creator?.full_name || "Unknown"} · {formatDateTime(item.created_at)}
-                      {item.status ? ` · ${item.status}` : ""}
-                    </p>
-                  </div>
-                ))
-              )}
+            <CardContent className="space-y-6">
+              <FieldJobUpdateForm fieldJobId={job.id} />
+
+              <div className="space-y-4">
+                {updates.length === 0 ? (
+                  <p className="text-sm text-slate-500">No updates yet.</p>
+                ) : (
+                  updates.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-slate-200 p-4"
+                    >
+                      <p className="text-sm text-slate-900">{item.note}</p>
+                      <p className="mt-2 text-xs text-slate-500">
+                        {item.creator?.full_name || "Unknown"} · {formatDateTime(item.created_at)}
+                        {item.status ? ` · ${item.status}` : ""}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

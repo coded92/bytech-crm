@@ -910,7 +910,7 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["company_settings"]["Insert"]>;
       };
 
-      ield_jobs: {
+      field_jobs: {
         Row: {
           id: string;
           job_number: string;
