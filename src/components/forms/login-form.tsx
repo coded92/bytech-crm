@@ -15,6 +15,9 @@ export function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (loading) return;
+
     setLoading(true);
     setMessage("Trying to sign in...");
 
@@ -42,43 +45,45 @@ export function LoginForm() {
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="mb-2 block text-sm font-medium">Email address</label>
-          <input
-            type="email"
-            className="w-full rounded-lg border px-3 py-2"
-            placeholder="type your email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium">Password</label>
-          <input
-            type="password"
-            className="w-full rounded-lg border px-3 py-2"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-black py-2 text-white disabled:opacity-60"
-        >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-
-        {message ? (
-          <div className="rounded-lg border bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            {message}
+        <fieldset disabled={loading} className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium">Email address</label>
+            <input
+              type="email"
+              className="w-full rounded-lg border px-3 py-2"
+              placeholder="type your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
-        ) : null}
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Password</label>
+            <input
+              type="password"
+              className="w-full rounded-lg border px-3 py-2"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-black py-2 text-white disabled:opacity-60"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+
+          {message ? (
+            <div className="rounded-lg border bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {message}
+            </div>
+          ) : null}
+        </fieldset>
       </form>
     </div>
   );

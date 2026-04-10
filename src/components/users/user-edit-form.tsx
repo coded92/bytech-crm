@@ -48,82 +48,101 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
             startTransition(async () => {
               const result = await updateUserAction(user.id, formData);
+
               if ("error" in result) {
                 setError(result.error);
+                return;
               }
+
+              setMessage("User updated successfully.");
             });
           }}
           className="space-y-6"
         >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name</Label>
-              <Input id="full_name" name="full_name" defaultValue={user.full_name} required />
+          <fieldset disabled={isPending} className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  name="full_name"
+                  defaultValue={user.full_name}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  defaultValue={user.email ?? ""}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <select
+                  id="role"
+                  name="role"
+                  defaultValue={user.role}
+                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="staff">Staff</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="is_active">Account Status</Label>
+                <select
+                  id="is_active"
+                  name="is_active"
+                  defaultValue={user.is_active ? "true" : "false"}
+                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="job_title">Job Title</Label>
+                <Input
+                  id="job_title"
+                  name="job_title"
+                  defaultValue={user.job_title ?? ""}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  defaultValue={user.phone ?? ""}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                defaultValue={user.email ?? ""}
-                required
-              />
-            </div>
+            {error ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {error}
+              </div>
+            ) : null}
 
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <select
-                id="role"
-                name="role"
-                defaultValue={user.role}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-              >
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
+            {message ? (
+              <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600">
+                {message}
+              </div>
+            ) : null}
 
-            <div className="space-y-2">
-              <Label htmlFor="is_active">Account Status</Label>
-              <select
-                id="is_active"
-                name="is_active"
-                defaultValue={user.is_active ? "true" : "false"}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-              >
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="job_title">Job Title</Label>
-              <Input id="job_title" name="job_title" defaultValue={user.job_title ?? ""} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" name="phone" defaultValue={user.phone ?? ""} />
-            </div>
-          </div>
-
-          {error ? (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-              {error}
-            </div>
-          ) : null}
-
-          {message ? (
-            <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600">
-              {message}
-            </div>
-          ) : null}
-
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Save Changes"}
-          </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </fieldset>
         </form>
 
         <div className="border-t border-slate-200 pt-6">
@@ -138,17 +157,19 @@ export function UserEditForm({ user }: UserEditFormProps) {
               variant="outline"
               disabled={isResetPending || !user.email}
               onClick={() => {
-                if (!user.email) return;
+                const email = user.email;
+                if (!email) return;
 
                 setError("");
                 setMessage("");
 
                 startResetTransition(async () => {
-                  const result = await sendPasswordResetAction(user.email!);
+                  const result = await sendPasswordResetAction(email);
 
                   if ("error" in result) {
                     setError(result.error);
-                }
+                    return;
+                  }
 
                   setMessage("Password reset email sent successfully.");
                 });

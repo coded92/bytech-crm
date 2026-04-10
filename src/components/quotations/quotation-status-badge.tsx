@@ -2,12 +2,12 @@ import { Badge } from "@/components/ui/badge";
 
 type QuotationStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
 
-const labelMap: Record<QuotationStatus, string> = {
-  draft: "Draft",
-  sent: "Sent",
-  accepted: "Accepted",
-  rejected: "Rejected",
-  expired: "Expired",
+const statusStyles: Record<QuotationStatus, string> = {
+  draft: "border-slate-200 bg-slate-100 text-slate-700",
+  sent: "border-blue-200 bg-blue-50 text-blue-700",
+  accepted: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  rejected: "border-red-200 bg-red-50 text-red-700",
+  expired: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 export function QuotationStatusBadge({
@@ -15,13 +15,9 @@ export function QuotationStatusBadge({
 }: {
   status: QuotationStatus;
 }) {
-  const styles: Record<QuotationStatus, string> = {
-    draft: "bg-slate-100 text-slate-700 border-slate-200",
-    sent: "bg-blue-50 text-blue-700 border-blue-200",
-    accepted: "bg-green-50 text-green-700 border-green-200",
-    rejected: "bg-red-50 text-red-700 border-red-200",
-    expired: "bg-amber-50 text-amber-700 border-amber-200",
-  };
-
-  return <Badge className={styles[status]}>{labelMap[status]}</Badge>;
+  return (
+    <Badge className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${statusStyles[status]}`}>
+      {status.replaceAll("_", " ")}
+    </Badge>
+  );
 }

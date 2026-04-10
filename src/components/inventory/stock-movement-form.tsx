@@ -1,15 +1,22 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createFieldJobMaterialAction } from "@/lib/actions/field-job-materials";
+import { createInventoryMovementAction } from "@/lib/actions/inventory";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export function FieldJobMaterialForm({
-  fieldJobId,
+type FieldJobOption = {
+  id: string;
+  job_number: string;
+};
+
+export function StockMovementForm({
+  inventoryItemId,
+  fieldJobs,
 }: {
-  fieldJobId: string;
+  inventoryItemId: string;
+  fieldJobs: FieldJobOption[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -22,33 +29,36 @@ export function FieldJobMaterialForm({
         setSuccess("");
 
         startTransition(async () => {
-          const result = await createFieldJobMaterialAction(formData);
+          const result = await createInventoryMovementAction(formData);
 
           if (result?.error) {
             setError(result.error);
             return;
           }
 
-          setSuccess("Material added successfully.");
+          setSuccess("Stock movement recorded successfully.");
         });
       }}
       className="space-y-4"
     >
       <fieldset disabled={isPending} className="space-y-4">
-        <input type="hidden" name="field_job_id" value={fieldJobId} />
+        <input type="hidden" name="inventory_item_id" value={inventoryItemId} />
 
         <div className="space-y-2">
-          <Label htmlFor="item_name">Item / Material Name</Label>
-          <input
-            id="item_name"
-            name="item_name"
+          <Label htmlFor="movement_type">Movement Type</Label>
+          <select
+            id="movement_type"
+            name="movement_type"
+            defaultValue="stock_in"
             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-            placeholder="POS cable"
-            required
-          />
+          >
+            <option value="stock_in">Stock In</option>
+            <option value="stock_out">Stock Out</option>
+            <option value="adjustment">Adjustment</option>
+          </select>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="quantity">Quantity</Label>
             <input
@@ -64,16 +74,6 @@ export function FieldJobMaterialForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="unit">Unit</Label>
-            <input
-              id="unit"
-              name="unit"
-              className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-              placeholder="pcs / meter"
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="unit_cost">Unit Cost</Label>
             <input
               id="unit_cost"
@@ -83,14 +83,30 @@ export function FieldJobMaterialForm({
               step="0.01"
               defaultValue="0"
               className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-              required
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="notes">Notes</Label>
-          <Textarea id="notes" name="notes" rows={3} />
+          <Label htmlFor="field_job_id">Related Field Job</Label>
+          <select
+            id="field_job_id"
+            name="field_job_id"
+            defaultValue=""
+            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+          >
+            <option value="">No linked field job</option>
+            {fieldJobs.map((job) => (
+              <option key={job.id} value={job.id}>
+                {job.job_number}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="note">Note</Label>
+          <Textarea id="note" name="note" rows={3} />
         </div>
 
         {error ? (
@@ -106,7 +122,7 @@ export function FieldJobMaterialForm({
         ) : null}
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving..." : "Add Material"}
+          {isPending ? "Saving..." : "Record Movement"}
         </Button>
       </fieldset>
     </form>

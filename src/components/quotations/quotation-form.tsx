@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { createQuotationAction } from "@/lib/actions/quotations";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +52,9 @@ export function QuotationForm({
   prefilledLeadId = "",
   prefilledCustomerId = "",
 }: QuotationFormProps) {
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState("");
+
   const [leadId, setLeadId] = useState(prefilledLeadId);
   const [customerId, setCustomerId] = useState(prefilledCustomerId);
 
@@ -70,12 +73,8 @@ export function QuotationForm({
     },
   ]);
 
-  const selectedLead = useMemo(
-    () => leads.find((lead) => lead.id === leadId),
-    [leadId, leads]
-  );
-
-  const selectedCustomer = useMemo(
+  useMemo(() => leads.find((lead) => lead.id === leadId), [leadId, leads]);
+  useMemo(
     () => customers.find((customer) => customer.id === customerId),
     [customerId, customers]
   );
@@ -138,7 +137,8 @@ export function QuotationForm({
   }
 
   const subtotal = items.reduce(
-    (sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0),
+    (sum, item) =>
+      sum + Number(item.quantity || 0) * Number(item.unit_price || 0),
     0
   );
 
@@ -152,199 +152,227 @@ export function QuotationForm({
       </CardHeader>
 
       <CardContent>
-        <form action={createQuotationAction as any} className="space-y-6">
-          <input
-            type="hidden"
-            name="items"
-            value={JSON.stringify(items)}
-            readOnly
-          />
+        <form
+          action={(formData) => {
+            setError("");
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="lead_id">Lead</Label>
-              <select
-                id="lead_id"
-                name="lead_id"
-                value={leadId}
-                onChange={(e) => applySelectedRecord("lead", e.target.value)}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-              >
-                <option value="">No linked lead</option>
-                {leads.map((lead) => (
-                  <option key={lead.id} value={lead.id}>
-                    {lead.company_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            startTransition(async () => {
+              const result = await createQuotationAction(formData);
 
-            <div className="space-y-2">
-              <Label htmlFor="customer_id">Customer</Label>
-              <select
-                id="customer_id"
-                name="customer_id"
-                value={customerId}
-                onChange={(e) => applySelectedRecord("customer", e.target.value)}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-              >
-                <option value="">No linked customer</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.company_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+              if ("error" in result) {
+                setError(result.error);
+              }
+            });
+          }}
+          className="space-y-6"
+        >
+          <fieldset disabled={isPending} className="space-y-6">
+            <input type="hidden" name="items" value={JSON.stringify(items)} readOnly />
 
-            <div className="space-y-2">
-              <Label htmlFor="company_name">Company Name</Label>
-              <Input
-                id="company_name"
-                name="company_name"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="contact_person">Contact Person</Label>
-              <Input
-                id="contact_person"
-                name="contact_person"
-                value={contactPerson}
-                onChange={(e) => setContactPerson(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Address</Label>
-              <Textarea
-                id="address"
-                name="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="valid_until">Valid Until</Label>
-              <Input id="valid_until" name="valid_until" type="date" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="discount">Discount</Label>
-              <Input id="discount" name="discount" type="number" defaultValue="0" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tax">Tax</Label>
-              <Input id="tax" name="tax" type="number" defaultValue="0" />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" name="notes" />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-900">Quotation Items</h3>
-              <Button type="button" variant="outline" onClick={addItem}>
-                Add Item
-              </Button>
-            </div>
-
-            {items.map((item, index) => (
-              <div
-                key={index}
-                className="grid gap-4 rounded-xl border border-slate-200 p-4 md:grid-cols-12"
-              >
-                <div className="space-y-2 md:col-span-3">
-                  <Label>Item Name</Label>
-                  <Input
-                    value={item.item_name}
-                    onChange={(e) => updateItem(index, "item_name", e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-3">
-                  <Label>Description</Label>
-                  <Input
-                    value={item.description}
-                    onChange={(e) =>
-                      updateItem(index, "description", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Quantity</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      updateItem(index, "quantity", Number(e.target.value))
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Unit Price</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={item.unit_price}
-                    onChange={(e) =>
-                      updateItem(index, "unit_price", Number(e.target.value))
-                    }
-                  />
-                </div>
-
-                <div className="flex items-end md:col-span-2">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => removeItem(index)}
-                    disabled={items.length === 1}
-                    className="w-full"
-                  >
-                    Remove
-                  </Button>
-                </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="lead_id">Lead</Label>
+                <select
+                  id="lead_id"
+                  name="lead_id"
+                  value={leadId}
+                  onChange={(e) => applySelectedRecord("lead", e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">No linked lead</option>
+                  {leads.map((lead) => (
+                    <option key={lead.id} value={lead.id}>
+                      {lead.company_name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ))}
 
-            <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
-              <span className="font-medium">Subtotal:</span> {subtotal.toLocaleString()}
+              <div className="space-y-2">
+                <Label htmlFor="customer_id">Customer</Label>
+                <select
+                  id="customer_id"
+                  name="customer_id"
+                  value={customerId}
+                  onChange={(e) => applySelectedRecord("customer", e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">No linked customer</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.company_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company_name">Company Name</Label>
+                <Input
+                  id="company_name"
+                  name="company_name"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contact_person">Contact Person</Label>
+                <Input
+                  id="contact_person"
+                  name="contact_person"
+                  value={contactPerson}
+                  onChange={(e) => setContactPerson(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea
+                  id="address"
+                  name="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valid_until">Valid Until</Label>
+                <Input id="valid_until" name="valid_until" type="date" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="discount">Discount</Label>
+                <Input
+                  id="discount"
+                  name="discount"
+                  type="number"
+                  defaultValue="0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tax">Tax</Label>
+                <Input id="tax" name="tax" type="number" defaultValue="0" />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea id="notes" name="notes" />
+              </div>
             </div>
-          </div>
 
-          <Button type="submit">Create Quotation</Button>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold text-slate-900">
+                  Quotation Items
+                </h3>
+                <Button type="button" variant="outline" onClick={addItem}>
+                  Add Item
+                </Button>
+              </div>
+
+              {items.map((item, index) => (
+                <div
+                  key={index}
+                  className="grid gap-4 rounded-xl border border-slate-200 p-4 md:grid-cols-12"
+                >
+                  <div className="space-y-2 md:col-span-3">
+                    <Label>Item Name</Label>
+                    <Input
+                      value={item.item_name}
+                      onChange={(e) =>
+                        updateItem(index, "item_name", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-3">
+                    <Label>Description</Label>
+                    <Input
+                      value={item.description}
+                      onChange={(e) =>
+                        updateItem(index, "description", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Quantity</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) =>
+                        updateItem(index, "quantity", Number(e.target.value))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Unit Price</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={item.unit_price}
+                      onChange={(e) =>
+                        updateItem(index, "unit_price", Number(e.target.value))
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-end md:col-span-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => removeItem(index)}
+                      disabled={items.length === 1 || isPending}
+                      className="w-full"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+                <span className="font-medium">Subtotal:</span>{" "}
+                {subtotal.toLocaleString()}
+              </div>
+            </div>
+
+            {error ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {error}
+              </div>
+            ) : null}
+
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving..." : "Create Quotation"}
+            </Button>
+          </fieldset>
         </form>
       </CardContent>
     </Card>

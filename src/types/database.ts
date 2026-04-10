@@ -1050,6 +1050,81 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["field_job_updates"]["Insert"]>;
       };
 
+      inventory_items: {
+        Row: {
+          id: string;
+          item_code: string;
+          item_name: string;
+          category:
+            | "cables"
+            | "printer_parts"
+            | "network_devices"
+            | "accessories"
+            | "spare_parts"
+            | "tools"
+            | "consumables"
+            | "other";
+          sku: string | null;
+          unit: string;
+          current_quantity: number;
+          minimum_quantity: number;
+          unit_cost: number;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          item_code?: string;
+          item_name: string;
+          category:
+            | "cables"
+            | "printer_parts"
+            | "network_devices"
+            | "accessories"
+            | "spare_parts"
+            | "tools"
+            | "consumables"
+            | "other";
+          sku?: string | null;
+          unit?: string;
+          current_quantity?: number;
+          minimum_quantity?: number;
+          unit_cost?: number;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["inventory_items"]["Insert"]>;
+      };
+      inventory_movements: {
+        Row: {
+          id: string;
+          inventory_item_id: string;
+          movement_type: "stock_in" | "stock_out" | "adjustment";
+          quantity: number;
+          unit_cost: number | null;
+          field_job_id: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          inventory_item_id: string;
+          movement_type: "stock_in" | "stock_out" | "adjustment";
+          quantity: number;
+          unit_cost?: number | null;
+          field_job_id?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["inventory_movements"]["Insert"]>;
+      };
+
       field_job_materials: {
         Row: {
           id: string;

@@ -52,71 +52,73 @@ export function ConvertLeadForm({
           }}
           className="space-y-5"
         >
-          <div className="space-y-2">
-            <Label htmlFor="plan_type">Plan Type</Label>
-            <select
-              id="plan_type"
-              name="plan_type"
-              defaultValue="cloud"
-              className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm"
-            >
-              <option value="cloud">Cloud</option>
-              <option value="offline">Offline</option>
-            </select>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
+          <fieldset disabled={isPending} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="setup_fee">Setup Fee</Label>
-              <Input
-                id="setup_fee"
-                name="setup_fee"
-                type="number"
-                min="0"
-                step="0.01"
-                defaultValue="0"
-              />
+              <Label htmlFor="plan_type">Plan Type</Label>
+              <select
+                id="plan_type"
+                name="plan_type"
+                defaultValue="cloud"
+                className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm"
+              >
+                <option value="cloud">Cloud</option>
+                <option value="offline">Offline</option>
+              </select>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="setup_fee">Setup Fee</Label>
+                <Input
+                  id="setup_fee"
+                  name="setup_fee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  defaultValue="0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subscription_amount">
+                  Subscription Amount
+                </Label>
+                <Input
+                  id="subscription_amount"
+                  name="subscription_amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  defaultValue="0"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subscription_amount">
-                Subscription Amount
-              </Label>
-              <Input
-                id="subscription_amount"
-                name="subscription_amount"
-                type="number"
-                min="0"
-                step="0.01"
-                defaultValue="0"
-              />
+              <Label htmlFor="billing_cycle">Billing Cycle</Label>
+              <select
+                id="billing_cycle"
+                name="billing_cycle"
+                defaultValue="monthly"
+                className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+                <option value="one_time">One Time</option>
+              </select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="billing_cycle">Billing Cycle</Label>
-            <select
-              id="billing_cycle"
-              name="billing_cycle"
-              defaultValue="monthly"
-              className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-sm"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="yearly">Yearly</option>
-              <option value="one_time">One Time</option>
-            </select>
-          </div>
+            {error ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {error}
+              </div>
+            ) : null}
 
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Converting..." : "Convert to Customer"}
-          </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Converting..." : "Convert to Customer"}
+            </Button>
+          </fieldset>
         </form>
       </CardContent>
     </Card>
