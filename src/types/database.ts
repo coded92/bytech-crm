@@ -910,6 +910,146 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["company_settings"]["Insert"]>;
       };
 
+      ield_jobs: {
+        Row: {
+          id: string;
+          job_number: string;
+          customer_id: string;
+          branch_id: string | null;
+          asset_id: string | null;
+          support_ticket_id: string | null;
+          title: string;
+          job_type:
+            | "wiring_repair"
+            | "hardware_repair"
+            | "site_inspection"
+            | "site_survey"
+            | "site_assessment"
+            | "installation"
+            | "maintenance_visit"
+            | "device_replacement"
+            | "network_troubleshooting"
+            | "training_visit"
+            | "other";
+          priority: "low" | "medium" | "high" | "urgent";
+          status:
+            | "pending"
+            | "assigned"
+            | "in_progress"
+            | "awaiting_parts"
+            | "completed"
+            | "cancelled";
+          assigned_engineer_id: string | null;
+          scheduled_date: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          reported_issue: string | null;
+          work_done: string | null;
+          materials_used: string | null;
+          recommendation: string | null;
+          customer_feedback: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_number?: string;
+          customer_id: string;
+          branch_id?: string | null;
+          asset_id?: string | null;
+          support_ticket_id?: string | null;
+          title: string;
+          job_type:
+            | "wiring_repair"
+            | "hardware_repair"
+            | "site_inspection"
+            | "site_survey"
+            | "site_assessment"
+            | "installation"
+            | "maintenance_visit"
+            | "device_replacement"
+            | "network_troubleshooting"
+            | "training_visit"
+            | "other";
+          priority?: "low" | "medium" | "high" | "urgent";
+          status?:
+            | "pending"
+            | "assigned"
+            | "in_progress"
+            | "awaiting_parts"
+            | "completed"
+            | "cancelled";
+          assigned_engineer_id?: string | null;
+          scheduled_date?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          reported_issue?: string | null;
+          work_done?: string | null;
+          materials_used?: string | null;
+          recommendation?: string | null;
+          customer_feedback?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["field_jobs"]["Insert"]>;
+      };
+      field_job_photos: {
+        Row: {
+          id: string;
+          field_job_id: string;
+          photo_type: "before" | "after" | "inspection" | "materials" | "other";
+          file_attachment_id: string | null;
+          caption: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          field_job_id: string;
+          photo_type: "before" | "after" | "inspection" | "materials" | "other";
+          file_attachment_id?: string | null;
+          caption?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["field_job_photos"]["Insert"]>;
+      };
+      field_job_updates: {
+        Row: {
+          id: string;
+          field_job_id: string;
+          note: string;
+          status:
+            | "pending"
+            | "assigned"
+            | "in_progress"
+            | "awaiting_parts"
+            | "completed"
+            | "cancelled"
+            | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          field_job_id: string;
+          note: string;
+          status?:
+            | "pending"
+            | "assigned"
+            | "in_progress"
+            | "awaiting_parts"
+            | "completed"
+            | "cancelled"
+            | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["field_job_updates"]["Insert"]>;
+      };
+
       file_attachments: {
         Row: {
           id: string;
