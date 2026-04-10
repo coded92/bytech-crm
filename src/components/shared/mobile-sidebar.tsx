@@ -23,6 +23,7 @@ import { Settings } from "lucide-react";
 import { ShieldCheck } from "lucide-react";
 import { Wrench } from "lucide-react";
 import { Boxes } from "lucide-react";
+import { Truck, ShoppingCart } from "lucide-react";
 import {
   Sheet,
   SheetClose,
@@ -56,6 +57,8 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
     { href: "/field-jobs/daily-report", label: "Engineer Daily", icon: Wrench },
     { href: "/inventory", label: "Inventory", icon: Boxes },
     { href: "/support", label: "Support", icon: Headset },
+    { href: "/suppliers", label: "Suppliers", icon: Truck },
+    { href: "/restocking", label: "Restocking", icon: ShoppingCart },
     ...(role === "admin"
       ? [
           { href: "/users", label: "Users", icon: Users },

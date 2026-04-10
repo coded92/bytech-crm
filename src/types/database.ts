@@ -1050,6 +1050,97 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["field_job_updates"]["Insert"]>;
       };
 
+      suppliers: {
+        Row: {
+          id: string;
+          supplier_code: string;
+          company_name: string;
+          contact_person: string | null;
+          email: string | null;
+          phone: string | null;
+          address: string | null;
+          city: string | null;
+          state: string | null;
+          notes: string | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          supplier_code?: string;
+          company_name: string;
+          contact_person?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          address?: string | null;
+          city?: string | null;
+          state?: string | null;
+          notes?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["suppliers"]["Insert"]>;
+      };
+      inventory_restock_orders: {
+        Row: {
+          id: string;
+          restock_number: string;
+          supplier_id: string | null;
+          status: "draft" | "ordered" | "received" | "cancelled";
+          order_date: string;
+          expected_date: string | null;
+          received_date: string | null;
+          reference: string | null;
+          notes: string | null;
+          total_amount: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          restock_number?: string;
+          supplier_id?: string | null;
+          status?: "draft" | "ordered" | "received" | "cancelled";
+          order_date?: string;
+          expected_date?: string | null;
+          received_date?: string | null;
+          reference?: string | null;
+          notes?: string | null;
+          total_amount?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["inventory_restock_orders"]["Insert"]>;
+      };
+      inventory_restock_order_items: {
+        Row: {
+          id: string;
+          restock_order_id: string;
+          inventory_item_id: string;
+          quantity: number;
+          unit_cost: number;
+          total_cost: number;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          restock_order_id: string;
+          inventory_item_id: string;
+          quantity: number;
+          unit_cost?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["inventory_restock_order_items"]["Insert"]>;
+      };
+
       inventory_items: {
         Row: {
           id: string;
