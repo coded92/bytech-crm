@@ -42,6 +42,7 @@ export function Sidebar({ role, closeSidebar }: SidebarProps) {
     { href: "/deployments", label: "Deployments", icon: MonitorSmartphone },
     { href: "/assets", label: "Assets", icon: Package },
     { href: "/field-jobs", label: "Field Jobs", icon: Wrench },
+    { href: "/field-jobs/daily-report", label: "Engineer Daily", icon: Wrench },
     { href: "/support", label: "Support", icon: Headset },
     ...(role === "admin"
       ? [

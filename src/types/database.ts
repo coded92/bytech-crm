@@ -1050,6 +1050,33 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["field_job_updates"]["Insert"]>;
       };
 
+      field_job_materials: {
+        Row: {
+          id: string;
+          field_job_id: string;
+          item_name: string;
+          quantity: number;
+          unit: string | null;
+          unit_cost: number;
+          total_cost: number;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          field_job_id: string;
+          item_name: string;
+          quantity?: number;
+          unit?: string | null;
+          unit_cost?: number;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["field_job_materials"]["Insert"]>;
+      };
+
       file_attachments: {
         Row: {
           id: string;
