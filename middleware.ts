@@ -63,6 +63,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/inventory")
     pathname.startsWith("/suppliers")
     pathname.startsWith("/restocking")
+    pathname.startsWith("/suppliers/payables")
     pathname.startsWith("/users");
     pathname.startsWith("/settings")
     pathname.startsWith("/audit-logs")
@@ -105,6 +106,7 @@ export const config = {
     "/inventory/:path*",
     "/suppliers/:path*",
     "/restocking/:path*",
+    "/suppliers/payables",
     "/users/:path*",
     "/settings/:path*",
     "/audit-logs",

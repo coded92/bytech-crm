@@ -19,6 +19,45 @@ type RestockItem = {
   notes?: string;
 };
 
+async function updateRestockPaymentSummary(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  restockOrderId: string
+) {
+  const { data: expenseRows } = await (supabase as any)
+    .from("expenses")
+    .select("amount")
+    .eq("restock_order_id", restockOrderId);
+
+  const paidAmount = (expenseRows ?? []).reduce(
+    (sum: number, item: { amount: number }) => sum + Number(item.amount || 0),
+    0
+  );
+
+  const { data: restockRow } = await (supabase as any)
+    .from("inventory_restock_orders")
+    .select("total_amount")
+    .eq("id", restockOrderId)
+    .maybeSingle();
+
+  const totalAmount = Number(restockRow?.total_amount || 0);
+
+  let paymentStatus: "unpaid" | "part_paid" | "paid" = "unpaid";
+
+  if (paidAmount > 0 && paidAmount < totalAmount) {
+    paymentStatus = "part_paid";
+  } else if (paidAmount >= totalAmount && totalAmount > 0) {
+    paymentStatus = "paid";
+  }
+
+  await (supabase as any)
+    .from("inventory_restock_orders")
+    .update({
+      paid_amount: paidAmount,
+      payment_status: paymentStatus,
+    })
+    .eq("id", restockOrderId);
+}
+
 export async function createRestockOrderAction(formData: FormData) {
   const supabase = await createClient();
   const {

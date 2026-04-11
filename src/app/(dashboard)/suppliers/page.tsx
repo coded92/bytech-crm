@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 
 type SupplierRow = {
   id: string;
-  supplier_code: string;
   company_name: string;
-  contact_person: string | null;
   phone: string | null;
   is_active: boolean;
 };
@@ -16,7 +14,7 @@ export default async function SuppliersPage() {
 
   const { data, error } = await supabase
     .from("suppliers")
-    .select("id, supplier_code, company_name, contact_person, phone, is_active")
+    .select("id, company_name, phone, is_active")
     .order("company_name");
 
   const suppliers = (data ?? []) as SupplierRow[];
@@ -54,9 +52,12 @@ export default async function SuppliersPage() {
               href={`/suppliers/${supplier.id}`}
               className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
             >
-              <p className="font-medium text-slate-900">{supplier.company_name}</p>
+              <p className="font-medium text-slate-900">
+                {supplier.company_name}
+              </p>
               <p className="mt-1 text-sm text-slate-500">
-                {supplier.supplier_code} · {supplier.contact_person || "-"} · {supplier.phone || "-"}
+                {supplier.phone || "-"} ·{" "}
+                {supplier.is_active ? "Active" : "Inactive"}
               </p>
             </Link>
           ))}

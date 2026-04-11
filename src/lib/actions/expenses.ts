@@ -10,6 +10,58 @@ type ExpenseInsert = Database["public"]["Tables"]["expenses"]["Insert"];
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 type ActivityLogInsert = Database["public"]["Tables"]["activity_logs"]["Insert"];
 
+async function updateRestockPaymentSummary(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  restockOrderId: string
+) {
+  const { data: expenseRows, error: expensesError } = await (supabase as any)
+    .from("expenses")
+    .select("amount")
+    .eq("restock_order_id", restockOrderId);
+
+  if (expensesError) {
+    throw new Error(expensesError.message);
+  }
+
+  const paidAmount = (expenseRows ?? []).reduce(
+    (sum: number, item: { amount: number | string | null }) =>
+      sum + Number(item.amount || 0),
+    0
+  );
+
+  const { data: restockRow, error: restockError } = await (supabase as any)
+    .from("inventory_restock_orders")
+    .select("total_amount")
+    .eq("id", restockOrderId)
+    .maybeSingle();
+
+  if (restockError) {
+    throw new Error(restockError.message);
+  }
+
+  const totalAmount = Number(restockRow?.total_amount || 0);
+
+  let paymentStatus: "unpaid" | "part_paid" | "paid" = "unpaid";
+
+  if (paidAmount > 0 && paidAmount < totalAmount) {
+    paymentStatus = "part_paid";
+  } else if (paidAmount >= totalAmount && totalAmount > 0) {
+    paymentStatus = "paid";
+  }
+
+  const { error: updateError } = await (supabase as any)
+    .from("inventory_restock_orders")
+    .update({
+      paid_amount: paidAmount,
+      payment_status: paymentStatus,
+    })
+    .eq("id", restockOrderId);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+}
+
 export async function createExpenseAction(formData: FormData): Promise<void> {
   const supabase = await createClient();
 
@@ -66,14 +118,14 @@ export async function createExpenseAction(formData: FormData): Promise<void> {
     };
   };
 
-  const payload: ExpenseInsert = {
+  const payload = {
     title: values.title,
     amount: values.amount,
     category: values.category,
     expense_date: values.expense_date,
     notes: values.notes || null,
     created_by: user.id,
-  };
+  } as ExpenseInsert;
 
   const { data: expense, error } = await expensesTable
     .insert(payload)
@@ -98,7 +150,8 @@ export async function createExpenseAction(formData: FormData): Promise<void> {
     description: `Created expense: ${values.title}`,
   };
 
-  const { error: activityError } = await activityLogsTable.insert(activityPayload);
+  const { error: activityError } =
+    await activityLogsTable.insert(activityPayload);
 
   if (activityError) {
     throw new Error(activityError.message);
@@ -107,4 +160,71 @@ export async function createExpenseAction(formData: FormData): Promise<void> {
   revalidatePath("/expenses");
   revalidatePath("/dashboard");
   redirect("/expenses");
+}
+
+export async function createSupplierPurchaseExpenseAction(formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const supplierId = String(formData.get("supplier_id") || "");
+  const restockOrderId = String(formData.get("restock_order_id") || "");
+  const amount = Number(formData.get("amount") || 0);
+  const description = String(formData.get("description") || "");
+  const expenseDate = String(formData.get("expense_date") || "");
+  const paymentMethod = String(formData.get("payment_method") || "transfer");
+
+  if (!supplierId) {
+    return { error: "Supplier is required" };
+  }
+
+  if (!restockOrderId) {
+    return { error: "Restock order is required" };
+  }
+
+  if (!amount || amount <= 0) {
+    return { error: "Amount must be greater than zero" };
+  }
+
+  if (!expenseDate) {
+    return { error: "Expense date is required" };
+  }
+
+  const { error } = await (supabase as any).from("expenses").insert({
+    title: description || "Supplier purchase payment",
+    amount,
+    category: "inventory",
+    expense_date: expenseDate,
+    notes: description || null,
+    payment_method: paymentMethod,
+    supplier_id: supplierId,
+    restock_order_id: restockOrderId,
+    created_by: user.id,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await updateRestockPaymentSummary(supabase, restockOrderId);
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "restock_order",
+    entity_id: restockOrderId,
+    action: "supplier_payment_recorded",
+    description: `Recorded supplier payment of ${amount}`,
+  });
+
+  revalidatePath("/expenses");
+  revalidatePath(`/restocking/${restockOrderId}`);
+  revalidatePath(`/suppliers/${supplierId}`);
+
+  return { success: true };
 }
