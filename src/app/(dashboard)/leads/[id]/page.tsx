@@ -165,6 +165,12 @@ export default async function LeadDetailsPage({
           <LeadStatusBadge status={lead.status} />
 
           <Button asChild variant="outline">
+            <Link href={`/leads/${lead.id}/edit`}>
+              Edit Lead
+            </Link>
+          </Button>
+          
+          <Button asChild variant="outline">
             <Link href={`/quotations/new?leadId=${lead.id}`}>
               Create Quotation
             </Link>

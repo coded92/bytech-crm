@@ -8,7 +8,13 @@ type LeadRow = {
   company_name: string;
   contact_person: string;
   phone: string | null;
-  status: "new" | "contacted" | "interested" | "follow_up" | "closed_won" | "closed_lost";
+  status:
+    | "new"
+    | "contacted"
+    | "interested"
+    | "follow_up"
+    | "closed_won"
+    | "closed_lost";
   estimated_value: number;
   next_follow_up_at: string | null;
   assigned_profile?: {
@@ -59,7 +65,9 @@ export function LeadTable({ leads }: { leads: LeadRow[] }) {
             {leads.map((lead) => (
               <tr key={lead.id}>
                 <td className="px-4 py-4">
-                  <div className="font-medium text-slate-900">{lead.company_name}</div>
+                  <div className="font-medium text-slate-900">
+                    {lead.company_name}
+                  </div>
                 </td>
                 <td className="px-4 py-4 text-sm text-slate-600">
                   <div>{lead.contact_person}</div>
@@ -78,12 +86,20 @@ export function LeadTable({ leads }: { leads: LeadRow[] }) {
                   {lead.assigned_profile?.full_name || "-"}
                 </td>
                 <td className="px-4 py-4 text-right">
-                  <Link
-                    href={`/leads/${lead.id}`}
-                    className="text-sm font-medium text-slate-900 underline underline-offset-4"
-                  >
-                    View
-                  </Link>
+                  <div className="flex items-center justify-end gap-3">
+                    <Link
+                      href={`/leads/${lead.id}`}
+                      className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                    >
+                      View
+                    </Link>
+                    <Link
+                      href={`/leads/${lead.id}/edit`}
+                      className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                    >
+                      Edit
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}

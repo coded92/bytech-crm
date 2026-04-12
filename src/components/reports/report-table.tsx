@@ -60,6 +60,13 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
               >
                 View Report
               </Link>
+
+               <Link
+                href={`/reports/${report.id}/edit`}
+                className="text-sm font-medium text-slate-900 underline underline-offset-4"
+              >
+                Edit
+              </Link>
             </div>
           </div>
         ))}

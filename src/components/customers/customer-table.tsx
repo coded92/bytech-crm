@@ -58,12 +58,19 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
               <p>Manager: {customer.account_manager?.full_name || "-"}</p>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-4">
               <Link
                 href={`/customers/${customer.id}`}
                 className="text-sm font-medium text-slate-900 underline underline-offset-4"
               >
                 View Customer
+              </Link>
+
+              <Link
+                href={`/customers/${customer.id}/edit`}
+                className="text-sm font-medium text-slate-900 underline underline-offset-4"
+              >
+                Edit Customer
               </Link>
             </div>
           </div>
@@ -132,12 +139,20 @@ export function CustomerTable({ customers }: { customers: CustomerRow[] }) {
                     {customer.account_manager?.full_name || "-"}
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <Link
-                      href={`/customers/${customer.id}`}
-                      className="text-sm font-medium text-slate-900 underline underline-offset-4"
-                    >
-                      View
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/customers/${customer.id}`}
+                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/customers/${customer.id}/edit`}
+                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                      >
+                        Edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

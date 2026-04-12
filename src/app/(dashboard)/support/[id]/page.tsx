@@ -125,6 +125,11 @@ export default async function SupportDetailsPage({
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <SupportStatusBadge status={ticket.status} />
 
+          <Button asChild variant="outline">
+            <Link href={`/support/${ticket.id}/edit`}>
+              Edit Ticket
+            </Link>
+          </Button>
           {ticket.customer?.id ? (
             <Button asChild variant="outline">
               <Link href={`/customers/${ticket.customer.id}`}>View Customer</Link>

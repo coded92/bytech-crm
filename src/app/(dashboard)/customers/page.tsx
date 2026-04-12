@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerTable } from "@/components/customers/customer-table";
+import { Button } from "@/components/ui/button";
 
 export default async function CustomersPage() {
   const supabase = await createClient();
@@ -21,13 +23,19 @@ export default async function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-          Customers
-        </h2>
-        <p className="text-slate-600">
-          Manage converted and active client accounts.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            Customers
+          </h2>
+          <p className="text-slate-600">
+            Manage converted and active client accounts.
+          </p>
+        </div>
+
+        <Button asChild>
+          <Link href="/customers/new">Add Customer</Link>
+        </Button>
       </div>
 
       {error ? (

@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { RestockStatusForm } from "@/components/restocking/restock-status-form";
 import { SupplierPaymentForm } from "@/components/restocking/supplier-payment-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 type RestockRow = {
   id: string;
@@ -112,11 +114,27 @@ export default async function RestockDetailsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-          {order.restock_number}
-        </h2>
-        <p className="text-slate-600">{supplier?.company_name || "-"}</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            {order.restock_number}
+          </h2>
+          <p className="text-slate-600">{supplier?.company_name || "-"}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button asChild variant="outline">
+            <Link href={`/restocking/${order.id}/purchase-order`}>
+              Purchase Order
+            </Link>
+          </Button>
+
+          <Button asChild variant="outline">
+            <Link href={`/restocking/${order.id}/goods-received-note`}>
+              Goods Received Note
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">

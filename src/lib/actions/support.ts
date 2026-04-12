@@ -96,69 +96,6 @@ export async function createSupportTicketAction(formData: FormData) {
   redirect(`/support/${ticket.id}`);
 }
 
-export async function updateSupportTicketAction(
-  ticketId: string,
-  formData: FormData
-) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
-
-  const parsed = updateSupportTicketSchema.safeParse({
-    status: formData.get("status"),
-    assigned_to: formData.get("assigned_to") || undefined,
-    resolution_notes: formData.get("resolution_notes") || undefined,
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid update data" };
-  }
-
-  const values = parsed.data;
-
-  const updatePayload: {
-    status: "open" | "in_progress" | "resolved" | "closed";
-    assigned_to: string | null;
-    resolution_notes: string | null;
-    resolved_at: string | null;
-  } = {
-    status: values.status,
-    assigned_to: values.assigned_to || null,
-    resolution_notes: values.resolution_notes || null,
-    resolved_at:
-      values.status === "resolved" || values.status === "closed"
-        ? new Date().toISOString()
-        : null,
-  };
-
-  const { error } = await (supabase as any)
-    .from("support_tickets")
-    .update(updatePayload)
-    .eq("id", ticketId);
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
-    entity_type: "support_ticket",
-    entity_id: ticketId,
-    action: "updated",
-    description: `Updated support ticket status to ${values.status}`,
-  });
-
-  revalidatePath("/support");
-  revalidatePath(`/support/${ticketId}`);
-
-  return { success: true };
-}
 
 export async function deleteSupportTicketAction(ticketId: string) {
   const admin = await requireAdmin();
@@ -182,5 +119,88 @@ export async function deleteSupportTicketAction(ticketId: string) {
   });
 
   revalidatePath("/support");
+  return { success: true };
+}
+
+
+export async function updateSupportTicketAction(
+  ticketId: string,
+  formData: FormData
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const customerId = String(formData.get("customer_id") || "").trim();
+  const assetId = String(formData.get("asset_id") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const issueType = String(formData.get("issue_type") || "").trim();
+  const priority = String(formData.get("priority") || "").trim();
+  const status = String(formData.get("status") || "").trim();
+  const assignedTo = String(formData.get("assigned_to") || "").trim();
+  const description = String(formData.get("description") || "").trim();
+  const resolutionNotes = String(formData.get("resolution_notes") || "").trim();
+
+  if (!customerId) {
+    return { error: "Customer is required" };
+  }
+
+  if (!title) {
+    return { error: "Ticket title is required" };
+  }
+
+  const updatePayload = {
+    customer_id: customerId,
+    asset_id: assetId || null,
+    title,
+    issue_type: issueType as
+      | "hardware"
+      | "software"
+      | "network"
+      | "training"
+      | "billing"
+      | "other",
+    priority: priority as "low" | "medium" | "high" | "urgent",
+    status: status as "open" | "in_progress" | "resolved" | "closed",
+    assigned_to: assignedTo || null,
+    description: description || null,
+    resolution_notes: resolutionNotes || null,
+    resolved_at:
+      status === "resolved" || status === "closed"
+        ? new Date().toISOString()
+        : null,
+  };
+
+  const { error } = await (supabase as any)
+    .from("support_tickets")
+    .update(updatePayload)
+    .eq("id", ticketId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "support_ticket",
+    entity_id: ticketId,
+    action: "updated",
+    description: `Updated support ticket: ${title}`,
+  });
+
+  revalidatePath("/support");
+  revalidatePath(`/support/${ticketId}`);
+  revalidatePath(`/support/${ticketId}/edit`);
+  revalidatePath(`/customers/${customerId}`);
+  if (assetId) {
+    revalidatePath(`/assets/${assetId}`);
+  }
+
   return { success: true };
 }

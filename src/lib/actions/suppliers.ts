@@ -67,3 +67,66 @@ export async function createSupplierAction(formData: FormData) {
   revalidatePath("/suppliers");
   redirect(`/suppliers/${supplier.id}`);
 }
+
+
+export async function updateSupplierAction(
+  supplierId: string,
+  formData: FormData
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const companyName = String(formData.get("company_name") || "").trim();
+  const contactPerson = String(formData.get("contact_person") || "").trim();
+  const email = String(formData.get("email") || "").trim();
+  const phone = String(formData.get("phone") || "").trim();
+  const city = String(formData.get("city") || "").trim();
+  const state = String(formData.get("state") || "").trim();
+  const address = String(formData.get("address") || "").trim();
+  const notes = String(formData.get("notes") || "").trim();
+  const isActive = String(formData.get("is_active") || "true") === "true";
+
+  if (!companyName) {
+    return { error: "Company name is required" };
+  }
+
+  const { error } = await (supabase as any)
+    .from("suppliers")
+    .update({
+      company_name: companyName,
+      contact_person: contactPerson || null,
+      email: email || null,
+      phone: phone || null,
+      city: city || null,
+      state: state || null,
+      address: address || null,
+      notes: notes || null,
+      is_active: isActive,
+    })
+    .eq("id", supplierId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "supplier",
+    entity_id: supplierId,
+    action: "updated",
+    description: `Updated supplier: ${companyName}`,
+  });
+
+  revalidatePath("/suppliers");
+  revalidatePath(`/suppliers/${supplierId}`);
+  revalidatePath(`/suppliers/${supplierId}/edit`);
+
+  return { success: true };
+}

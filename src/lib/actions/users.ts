@@ -11,6 +11,10 @@ import {
 
 type ActionResponse = { success: true } | { error: string };
 
+function buildFullName(firstName: string, lastName?: string) {
+  return `${firstName} ${lastName ?? ""}`.trim();
+}
+
 async function requireAdminContext() {
   const supabase = await createClient();
   const adminClient = createAdminClient();
@@ -20,7 +24,12 @@ async function requireAdminContext() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "Unauthorized", supabase: null, adminClient: null, user: null };
+    return {
+      error: "Unauthorized",
+      supabase: null,
+      adminClient: null,
+      user: null,
+    };
   }
 
   const profileResult = await (supabase as any)
@@ -58,12 +67,22 @@ export async function createUserAction(
   }
 
   const parsed = createUserSchema.safeParse({
-    full_name: formData.get("full_name"),
+    first_name: formData.get("first_name"),
+    last_name: formData.get("last_name") || undefined,
     email: formData.get("email"),
     password: formData.get("password"),
+    username: formData.get("username"),
     role: formData.get("role"),
     job_title: formData.get("job_title") || undefined,
     phone: formData.get("phone") || undefined,
+    address: formData.get("address") || undefined,
+    city: formData.get("city") || undefined,
+    state: formData.get("state") || undefined,
+    hire_date: formData.get("hire_date") || undefined,
+    birthday: formData.get("birthday") || undefined,
+    employee_number: formData.get("employee_number") || undefined,
+    force_password_change: formData.get("force_password_change") === "on",
+    allowed_modules: formData.getAll("allowed_modules"),
   });
 
   if (!parsed.success) {
@@ -73,14 +92,19 @@ export async function createUserAction(
   }
 
   const values = parsed.data;
+  const fullName = buildFullName(values.first_name, values.last_name);
 
   const createUserResult = await ctx.adminClient.auth.admin.createUser({
     email: values.email,
     password: values.password,
     email_confirm: true,
     user_metadata: {
-      full_name: values.full_name,
+      full_name: fullName,
+      first_name: values.first_name,
+      last_name: values.last_name || null,
+      username: values.username,
       role: values.role,
+      force_password_change: values.force_password_change,
     },
   });
 
@@ -96,11 +120,22 @@ export async function createUserAction(
   const profileUpdateResult = await (ctx.adminClient as any)
     .from("profiles")
     .update({
-      full_name: values.full_name,
+      full_name: fullName,
+      first_name: values.first_name,
+      last_name: values.last_name || null,
       email: values.email,
+      username: values.username,
       role: values.role,
       job_title: values.job_title || null,
       phone: values.phone || null,
+      address: values.address || null,
+      city: values.city || null,
+      state: values.state || null,
+      hire_date: values.hire_date || null,
+      birthday: values.birthday || null,
+      employee_number: values.employee_number || null,
+      force_password_change: values.force_password_change,
+      allowed_modules: values.allowed_modules,
       is_active: true,
     })
     .eq("id", createdUser.user.id);
@@ -118,7 +153,7 @@ export async function createUserAction(
     entity_type: "user",
     entity_id: createdUser.user.id,
     action: "created",
-    description: `Created user account for ${values.full_name}`,
+    description: `Created user account for ${fullName}`,
   });
 
   revalidatePath("/users");
@@ -136,11 +171,21 @@ export async function updateUserAction(
   }
 
   const parsed = updateUserSchema.safeParse({
-    full_name: formData.get("full_name"),
+    first_name: formData.get("first_name"),
+    last_name: formData.get("last_name") || undefined,
     email: formData.get("email"),
+    username: formData.get("username"),
     role: formData.get("role"),
     job_title: formData.get("job_title") || undefined,
     phone: formData.get("phone") || undefined,
+    address: formData.get("address") || undefined,
+    city: formData.get("city") || undefined,
+    state: formData.get("state") || undefined,
+    hire_date: formData.get("hire_date") || undefined,
+    birthday: formData.get("birthday") || undefined,
+    employee_number: formData.get("employee_number") || undefined,
+    force_password_change: formData.get("force_password_change") === "on",
+    allowed_modules: formData.getAll("allowed_modules"),
     is_active: formData.get("is_active"),
   });
 
@@ -151,15 +196,27 @@ export async function updateUserAction(
   }
 
   const values = parsed.data;
+  const fullName = buildFullName(values.first_name, values.last_name);
 
   const profileUpdateResult = await (ctx.adminClient as any)
     .from("profiles")
     .update({
-      full_name: values.full_name,
+      full_name: fullName,
+      first_name: values.first_name,
+      last_name: values.last_name || null,
       email: values.email,
+      username: values.username,
       role: values.role,
       job_title: values.job_title || null,
       phone: values.phone || null,
+      address: values.address || null,
+      city: values.city || null,
+      state: values.state || null,
+      hire_date: values.hire_date || null,
+      birthday: values.birthday || null,
+      employee_number: values.employee_number || null,
+      force_password_change: values.force_password_change,
+      allowed_modules: values.allowed_modules,
       is_active: values.is_active === "true",
     })
     .eq("id", userId);
@@ -177,8 +234,12 @@ export async function updateUserAction(
     {
       email: values.email,
       user_metadata: {
-        full_name: values.full_name,
+        full_name: fullName,
+        first_name: values.first_name,
+        last_name: values.last_name || null,
+        username: values.username,
         role: values.role,
+        force_password_change: values.force_password_change,
       },
     }
   );
@@ -194,7 +255,7 @@ export async function updateUserAction(
     entity_type: "user",
     entity_id: userId,
     action: "updated",
-    description: `Updated user account for ${values.full_name}`,
+    description: `Updated user account for ${fullName}`,
   });
 
   revalidatePath("/users");

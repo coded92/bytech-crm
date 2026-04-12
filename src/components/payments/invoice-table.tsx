@@ -63,6 +63,12 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
               >
                 View Invoice
               </Link>
+              <Link
+                href={`/payments/invoices/${invoice.id}/edit`}
+                className="text-sm font-medium text-slate-900 underline underline-offset-4"
+              >
+                Edit
+              </Link>
             </div>
           </div>
         ))}

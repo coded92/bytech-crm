@@ -112,6 +112,11 @@ export default async function InvoiceDetailsPage({
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <InvoiceStatusBadge status={invoice.status} />
 
+          <Button asChild variant="outline">
+            <Link href={`/payments/invoices/${invoice.id}/edit`}>
+              Edit Invoice
+            </Link>
+          </Button>
           {invoice.customer?.id ? (
             <Button asChild variant="outline">
               <Link href={`/customers/${invoice.customer.id}`}>

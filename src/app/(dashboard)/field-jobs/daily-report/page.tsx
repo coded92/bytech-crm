@@ -9,6 +9,10 @@ type FieldJobRow = {
   title: string;
   status: string;
   scheduled_date: string | null;
+  checked_in_at: string | null;
+  work_started_at: string | null;
+  work_completed_at: string | null;
+  checked_out_at: string | null;
   completed_at: string | null;
   customer: {
     company_name: string | null;
@@ -28,6 +32,10 @@ export default async function FieldJobsDailyReportPage() {
       title,
       status,
       scheduled_date,
+      checked_in_at,
+      work_started_at,
+      work_completed_at,
+      checked_out_at,
       completed_at,
       customer:customers(company_name)
     `)
@@ -83,6 +91,18 @@ export default async function FieldJobsDailyReportPage() {
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
                   Scheduled: {formatDate(job.scheduled_date)}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Checked In: {formatDateTime(job.checked_in_at)}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Started: {formatDateTime(job.work_started_at)}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Completed Work: {formatDateTime(job.work_completed_at)}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Checked Out: {formatDateTime(job.checked_out_at)}
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
                   Completed: {formatDateTime(job.completed_at)}

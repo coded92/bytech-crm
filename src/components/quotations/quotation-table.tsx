@@ -50,12 +50,19 @@ export function QuotationTable({ quotations }: { quotations: QuotationRow[] }) {
               <p>Valid Until: {formatDate(quotation.valid_until)}</p>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-4">
               <Link
                 href={`/quotations/${quotation.id}`}
                 className="text-sm font-medium text-slate-900 underline underline-offset-4"
               >
                 View Quotation
+              </Link>
+
+              <Link
+                href={`/quotations/${quotation.id}/edit`}
+                className="text-sm font-medium text-slate-900 underline underline-offset-4"
+              >
+                Edit Quotation
               </Link>
             </div>
           </div>
@@ -113,12 +120,20 @@ export function QuotationTable({ quotations }: { quotations: QuotationRow[] }) {
                     <QuotationStatusBadge status={quotation.status} />
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <Link
-                      href={`/quotations/${quotation.id}`}
-                      className="text-sm font-medium text-slate-900 underline underline-offset-4"
-                    >
-                      View
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/quotations/${quotation.id}`}
+                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/quotations/${quotation.id}/edit`}
+                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                      >
+                        Edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

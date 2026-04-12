@@ -1,359 +1,285 @@
-import { subDays, format } from "date-fns";
-import { requireProfile } from "@/lib/auth/require-profile";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { StatsCard } from "@/components/dashboard/stats-card";
-import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { TasksDueToday } from "@/components/dashboard/tasks-due-today";
-import { RunReminderScanButton } from "@/components/dashboard/run-reminder-scan-button";
-import { AnalyticsChart } from "@/components/dashboard/analytics-chart";
-import { SummaryGrid } from "@/components/dashboard/summary-grid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DashboardExports } from "@/components/dashboard/dashboard-exports";
-
-type InvoiceStatus = "pending" | "partial" | "paid" | "overdue" | "waived";
 
 type InvoiceRow = {
   id: string;
-  invoice_number: string;
-  invoice_type: string | null;
-  amount: number | null;
-  amount_paid: number | null;
-  balance: number | null;
-  status: InvoiceStatus;
-  customer: {
-    company_name: string | null;
-  } | null;
+  total_amount: number;
+  amount_paid: number;
+  due_date: string | null;
+  status: string;
 };
 
-type LeadStatus = "new" | "contacted" | "interested" | "follow_up" | "closed";
-
-type LeadPipelineRow = {
-  status: LeadStatus;
+type RestockPayableRow = {
+  id: string;
+  total_amount: number;
+  paid_amount: number;
+  payment_status: "unpaid" | "part_paid" | "paid";
 };
-
-type PaymentRow = {
-  amount: number | null;
-  paid_at: string;
-};
-
-type ExpenseRow = {
-  title?: string | null;
-  category?: string | null;
-  amount: number | null;
-  expense_date: string;
-  notes?: string | null;
-};
-
-function buildLast7DaysLabels() {
-  return Array.from({ length: 7 }).map((_, index) => {
-    const date = subDays(new Date(), 6 - index);
-    return {
-      key: format(date, "yyyy-MM-dd"),
-      label: format(date, "dd MMM"),
-    };
-  });
-}
 
 export default async function DashboardPage() {
-  const profile = await requireProfile();
+  await requireProfile();
   const supabase = await createClient();
 
-  await supabase.rpc("mark_overdue_invoices");
-
-  const last7Days = buildLast7DaysLabels();
-  const startDate = last7Days[0]?.key ?? format(subDays(new Date(), 6), "yyyy-MM-dd");
-  const todayStart = `${format(new Date(), "yyyy-MM-dd")}T00:00:00.000Z`;
-  const todayEnd = `${format(new Date(), "yyyy-MM-dd")}T23:59:59.999Z`;
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const monthStartStr = monthStart.toISOString();
 
   const [
-    leadsResult,
-    invoicesResult,
-    paymentsResult,
-    expensesResult,
-    tasksDueTodayResult,
-    activityResult,
-    leadPipelineResult,
+    { count: customersCount },
+    { count: leadsCount },
+    { count: openSupportCount },
+    { data: invoicesData },
+    { count: lowStockCount },
+    { count: todayFieldJobsCount },
+    { data: monthlyInvoicesData },
+    { data: monthlyPaymentsData },
+    { data: monthlyExpensesData },
+    { data: supplierPayablesData },
   ] = await Promise.all([
-    profile.role === "admin"
-      ? supabase.from("leads").select("id", { count: "exact", head: true })
-      : supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .or(`assigned_to.eq.${profile.id},created_by.eq.${profile.id}`),
+    supabase
+      .from("customers")
+      .select("*", { count: "exact", head: true }),
 
     supabase
-      .from("payment_invoices")
-      .select(`
-        id,
-        invoice_number,
-        invoice_type,
-        amount,
-        amount_paid,
-        balance,
-        status,
-        customer:customers(company_name)
-      `),
+      .from("leads")
+      .select("*", { count: "exact", head: true }),
 
     supabase
-      .from("payment_transactions")
-      .select("amount, paid_at")
-      .gte("paid_at", `${startDate}T00:00:00.000Z`),
+      .from("support_tickets")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["open", "in_progress"]),
+
+    supabase
+      .from("invoices")
+      .select("id, total_amount, amount_paid, due_date, status"),
+
+    supabase
+      .from("inventory_items")
+      .select("*", { count: "exact", head: true })
+      .filter("current_quantity", "lte", "minimum_quantity"),
+
+    supabase
+      .from("field_jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("scheduled_date", today),
+
+    supabase
+      .from("invoices")
+      .select("id, total_amount, created_at")
+      .gte("created_at", monthStartStr),
+
+    supabase
+      .from("receipts")
+      .select("id, amount, created_at")
+      .gte("created_at", monthStartStr),
 
     supabase
       .from("expenses")
-      .select("title, category, amount, expense_date, notes")
-      .gte("expense_date", startDate),
-
-    profile.role === "admin"
-      ? supabase
-          .from("tasks")
-          .select(`
-            id,
-            title,
-            status,
-            priority,
-            due_date,
-            assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
-          `)
-          .gte("due_date", todayStart)
-          .lte("due_date", todayEnd)
-          .neq("status", "completed")
-          .order("due_date", { ascending: true })
-          .limit(10)
-      : supabase
-          .from("tasks")
-          .select(`
-            id,
-            title,
-            status,
-            priority,
-            due_date,
-            assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
-          `)
-          .eq("assigned_to", profile.id)
-          .gte("due_date", todayStart)
-          .lte("due_date", todayEnd)
-          .neq("status", "completed")
-          .order("due_date", { ascending: true })
-          .limit(10),
+      .select("id, amount, created_at")
+      .gte("created_at", monthStartStr),
 
     supabase
-      .from("activity_logs")
-      .select(`
-        id,
-        action,
-        description,
-        entity_type,
-        created_at,
-        actor:profiles!activity_logs_actor_id_fkey(full_name)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(10),
-
-    supabase.from("leads").select("status"),
+      .from("inventory_restock_orders")
+      .select("id, total_amount, paid_amount, payment_status")
+      .in("payment_status", ["unpaid", "part_paid"]),
   ]);
 
-  const invoices = (invoicesResult.data ?? []) as InvoiceRow[];
-  const leadPipeline = (leadPipelineResult.data ?? []) as LeadPipelineRow[];
-  const payments = (paymentsResult.data ?? []) as PaymentRow[];
-  const expenses = (expensesResult.data ?? []) as ExpenseRow[];
+  const invoices = (invoicesData ?? []) as InvoiceRow[];
+  const overdueInvoicesCount = invoices.filter((invoice) => {
+    if (!invoice.due_date) return false;
+    if (invoice.status === "paid") return false;
+    return invoice.due_date < today;
+  }).length;
 
-  const pendingInvoices = invoices.filter(
-    (invoice) => invoice.status === "pending" || invoice.status === "partial"
-  ).length;
+  const monthlyInvoicesTotal = (monthlyInvoicesData ?? []).reduce(
+    (sum, item: { total_amount: number }) => sum + Number(item.total_amount || 0),
+    0
+  );
 
-  const overdueInvoices = invoices.filter(
-    (invoice) => invoice.status === "overdue"
-  ).length;
+  const monthlyPaymentsTotal = (monthlyPaymentsData ?? []).reduce(
+    (sum, item: { amount: number }) => sum + Number(item.amount || 0),
+    0
+  );
 
-  const paidInvoices = invoices.filter(
-    (invoice) => invoice.status === "paid"
-  ).length;
+  const monthlyExpensesTotal = (monthlyExpensesData ?? []).reduce(
+    (sum, item: { amount: number }) => sum + Number(item.amount || 0),
+    0
+  );
 
-  const invoiceSummary = [
-    {
-      label: "Pending",
-      value: invoices.filter((i) => i.status === "pending").length,
-    },
-    {
-      label: "Partial",
-      value: invoices.filter((i) => i.status === "partial").length,
-    },
-    {
-      label: "Paid",
-      value: paidInvoices,
-    },
-    {
-      label: "Overdue",
-      value: overdueInvoices,
-    },
-  ];
+  const supplierPayables = (supplierPayablesData ?? []) as RestockPayableRow[];
 
-  const leadSummary = [
-    {
-      label: "New",
-      value: leadPipeline.filter((l) => l.status === "new").length,
-    },
-    {
-      label: "Contacted",
-      value: leadPipeline.filter((l) => l.status === "contacted").length,
-    },
-    {
-      label: "Interested",
-      value: leadPipeline.filter((l) => l.status === "interested").length,
-    },
-    {
-      label: "Follow-up",
-      value: leadPipeline.filter((l) => l.status === "follow_up").length,
-    },
-    {
-      label: "Closed",
-      value: leadPipeline.filter((l) => l.status === "closed").length,
-    },
-  ];
-
-  const revenueChart = last7Days.map((day) => {
-    const total = payments
-      .filter((payment) => payment.paid_at.slice(0, 10) === day.key)
-      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-
-    return { label: day.label, value: total };
-  });
-
-  const expenseChart = last7Days.map((day) => {
-    const total = expenses
-      .filter((expense) => expense.expense_date === day.key)
-      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-
-    return { label: day.label, value: total };
-  });
-
-  const profitChart = last7Days.map((day) => {
-    const revenue = payments
-      .filter((payment) => payment.paid_at.slice(0, 10) === day.key)
-      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-
-    const dailyExpenses = expenses
-      .filter((expense) => expense.expense_date === day.key)
-      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-
-    return { label: day.label, value: revenue - dailyExpenses };
-  });
-
-  const todayLabel = format(new Date(), "dd MMM");
-
-  const todayRevenue =
-    revenueChart.find((item) => item.label === todayLabel)?.value || 0;
-
-  const todayExpenses =
-    expenseChart.find((item) => item.label === todayLabel)?.value || 0;
-
-  const todayProfit = todayRevenue - todayExpenses;
+  const totalSupplierPayables = supplierPayables.reduce((sum, row) => {
+    const balance =
+      Number(row.total_amount || 0) - Number(row.paid_amount || 0);
+    return sum + Math.max(0, balance);
+  }, 0);
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-          Dashboard
+          Management Dashboard
         </h2>
-        <p className="text-slate-600">Welcome back, {profile.full_name}.</p>
-
-        {profile.role === "admin" ? (
-          <div className="mt-4">
-            <RunReminderScanButton />
-          </div>
-        ) : null}
+        <p className="text-slate-600">
+          Overview of sales, operations, finance, inventory, and support.
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-        <StatsCard
-          title="Revenue"
-          value={formatCurrency(todayRevenue)}
-          description="Received today"
-          tone="amber"
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricCard
+          title="Customers"
+          value={String(customersCount ?? 0)}
+          href="/customers"
         />
-        <StatsCard
-          title="Expenses"
-          value={formatCurrency(todayExpenses)}
-          description="Spent today"
-          tone="rose"
+        <MetricCard
+          title="Leads"
+          value={String(leadsCount ?? 0)}
+          href="/leads"
         />
-        <StatsCard
-          title="Profit"
-          value={formatCurrency(todayProfit)}
-          description="Revenue minus expenses"
-          tone="emerald"
+        <MetricCard
+          title="Open Support"
+          value={String(openSupportCount ?? 0)}
+          href="/support"
         />
-        <StatsCard
-          title="Pending Invoices"
-          value={String(pendingInvoices)}
-          description="Pending and partial"
-          tone="slate"
+        <MetricCard
+          title="Today Field Jobs"
+          value={String(todayFieldJobsCount ?? 0)}
+          href="/field-jobs"
         />
-        <StatsCard
+        <MetricCard
+          title="Low Stock Items"
+          value={String(lowStockCount ?? 0)}
+          href="/inventory"
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
           title="Overdue Invoices"
-          value={String(overdueInvoices)}
-          description="Need attention"
-          tone="rose"
+          value={String(overdueInvoicesCount)}
+          href="/payments/invoices"
         />
-        <StatsCard
-          title="Total Leads"
-          value={String(leadsResult.count || 0)}
-          description="All visible leads"
-          tone="indigo"
+        <MetricCard
+          title="Monthly Invoices"
+          value={formatCurrency(monthlyInvoicesTotal)}
+          href="/payments/invoices"
+        />
+        <MetricCard
+          title="Monthly Payments"
+          value={formatCurrency(monthlyPaymentsTotal)}
+          href="/payments/receipts"
+        />
+        <MetricCard
+          title="Monthly Expenses"
+          value={formatCurrency(monthlyExpensesTotal)}
+          href="/expenses"
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <AnalyticsChart title="Revenue Trend (7 days)" data={revenueChart} />
-        <AnalyticsChart title="Expense Trend (7 days)" data={expenseChart} />
-        <AnalyticsChart title="Profit Trend (7 days)" data={profitChart} />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <SummaryGrid title="Lead Pipeline Summary" items={leadSummary} />
-        <SummaryGrid title="Invoice Status Summary" items={invoiceSummary} />
-      </div>
-
-      <DashboardExports
-        invoiceRows={invoices.map((invoice) => [
-          invoice.invoice_number,
-          invoice.customer?.company_name || "",
-          invoice.invoice_type || "",
-          invoice.status,
-          invoice.amount || 0,
-          invoice.amount_paid || 0,
-          invoice.balance || 0,
-        ])}
-        expenseRows={expenses.map((expense) => [
-          expense.title || "",
-          expense.category || "",
-          expense.amount || 0,
-          expense.expense_date,
-          expense.notes || "",
-        ])}
-      />
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Tasks Due Today</CardTitle>
+            <CardTitle>Management Snapshot</CardTitle>
           </CardHeader>
-          <CardContent>
-            <TasksDueToday tasks={tasksDueTodayResult.data || []} />
+
+          <CardContent className="space-y-3 text-sm">
+            <SnapshotRow
+              label="Total Supplier Payables"
+              value={formatCurrency(totalSupplierPayables)}
+            />
+            <SnapshotRow
+              label="Outstanding Supplier Orders"
+              value={String(supplierPayables.length)}
+            />
+            <SnapshotRow
+              label="Open Support Tickets"
+              value={String(openSupportCount ?? 0)}
+            />
+            <SnapshotRow
+              label="Low Stock Alerts"
+              value={String(lowStockCount ?? 0)}
+            />
+            <SnapshotRow
+              label="Overdue Invoices"
+              value={String(overdueInvoicesCount)}
+            />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Quick Access</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ActivityFeed activities={activityResult.data || []} />
+
+          <CardContent className="space-y-3 text-sm">
+            <QuickLink href="/payments/invoices">View Invoices</QuickLink>
+            <QuickLink href="/support">View Support</QuickLink>
+            <QuickLink href="/inventory">View Inventory</QuickLink>
+            <QuickLink href="/suppliers/payables">View Supplier Payables</QuickLink>
+            <QuickLink href="/field-jobs/daily-report">Engineer Daily Report</QuickLink>
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  href,
+}: {
+  title: string;
+  value: string;
+  href: string;
+}) {
+  return (
+    <Link href={href}>
+      <Card className="h-full transition hover:border-slate-300 hover:shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-slate-500">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold text-slate-900">{value}</p>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+function SnapshotRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-slate-500">{label}</span>
+      <span className="text-right font-medium text-slate-900">{value}</span>
+    </div>
+  );
+}
+
+function QuickLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-lg border border-slate-200 px-3 py-2 text-slate-700 transition hover:bg-slate-50"
+    >
+      {children}
+    </Link>
   );
 }

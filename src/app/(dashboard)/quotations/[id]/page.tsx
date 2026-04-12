@@ -94,6 +94,12 @@ export default async function QuotationDetailsPage({
           <QuotationStatusBadge status={quotation.status} />
 
           <Button asChild variant="outline">
+            <Link href={`/quotations/${quotation.id}/edit`}>
+              Edit Quotation
+            </Link>
+          </Button>
+          
+          <Button asChild variant="outline">
             <Link href={`/quotations/${quotation.id}/print`}>Print Version</Link>
           </Button>
 

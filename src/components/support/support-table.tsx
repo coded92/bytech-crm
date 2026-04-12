@@ -57,12 +57,19 @@ export function SupportTable({ tickets }: { tickets: SupportRow[] }) {
               <p>Created: {formatDateTime(ticket.created_at)}</p>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-4">
               <Link
                 href={`/support/${ticket.id}`}
                 className="text-sm font-medium text-slate-900 underline underline-offset-4"
               >
                 View Ticket
+              </Link>
+
+              <Link
+                href={`/support/${ticket.id}/edit`}
+                className="text-sm font-medium text-slate-900 underline underline-offset-4"
+              >
+                Edit Ticket
               </Link>
             </div>
           </div>
@@ -129,12 +136,20 @@ export function SupportTable({ tickets }: { tickets: SupportRow[] }) {
                     {formatDateTime(ticket.created_at)}
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <Link
-                      href={`/support/${ticket.id}`}
-                      className="text-sm font-medium text-slate-900 underline underline-offset-4"
-                    >
-                      View
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/support/${ticket.id}`}
+                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/support/${ticket.id}/edit`}
+                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                      >
+                        Edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

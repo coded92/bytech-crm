@@ -25,7 +25,8 @@ export function InventoryTable({ items }: { items: InventoryRow[] }) {
     <>
       <div className="space-y-4 sm:hidden">
         {items.map((item) => {
-          const isLowStock = Number(item.current_quantity) <= Number(item.minimum_quantity);
+          const isLowStock =
+            Number(item.current_quantity) <= Number(item.minimum_quantity);
 
           return (
             <div
@@ -46,11 +47,17 @@ export function InventoryTable({ items }: { items: InventoryRow[] }) {
                   <span className="rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700">
                     Low Stock
                   </span>
-                ) : null}
+                ) : (
+                  <span className="rounded-full border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                    In Stock
+                  </span>
+                )}
               </div>
 
               <div className="mt-4 space-y-2 text-sm text-slate-600">
-                <p className="capitalize">Category: {item.category.replaceAll("_", " ")}</p>
+                <p className="capitalize">
+                  Category: {item.category.replaceAll("_", " ")}
+                </p>
                 <p>
                   Quantity: {item.current_quantity} {item.unit}
                 </p>
@@ -60,12 +67,19 @@ export function InventoryTable({ items }: { items: InventoryRow[] }) {
                 <p>Unit Cost: {formatCurrency(item.unit_cost)}</p>
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4 flex items-center gap-4">
                 <Link
                   href={`/inventory/${item.id}`}
                   className="text-sm font-medium text-slate-900 underline underline-offset-4"
                 >
                   View Item
+                </Link>
+
+                <Link
+                  href={`/inventory/${item.id}/edit`}
+                  className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                >
+                  Edit Item
                 </Link>
               </div>
             </div>
@@ -110,8 +124,12 @@ export function InventoryTable({ items }: { items: InventoryRow[] }) {
                 return (
                   <tr key={item.id}>
                     <td className="px-4 py-4 text-sm">
-                      <div className="font-medium text-slate-900">{item.item_name}</div>
-                      <div className="text-xs text-slate-500">{item.item_code}</div>
+                      <div className="font-medium text-slate-900">
+                        {item.item_name}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {item.item_code}
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-sm capitalize text-slate-600">
                       {item.category.replaceAll("_", " ")}
@@ -137,12 +155,20 @@ export function InventoryTable({ items }: { items: InventoryRow[] }) {
                       )}
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <Link
-                        href={`/inventory/${item.id}`}
-                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
-                      >
-                        View
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/inventory/${item.id}`}
+                          className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                        >
+                          View
+                        </Link>
+                        <Link
+                          href={`/inventory/${item.id}/edit`}
+                          className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                        >
+                          Edit
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 );

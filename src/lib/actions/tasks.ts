@@ -153,3 +153,97 @@ export async function updateTaskStatusAction(
 
   return { success: true };
 }
+
+export async function updateTaskAction(
+  taskId: string,
+  formData: FormData
+): Promise<ActionResponse | never> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const parsed = createTaskSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description") || undefined,
+    task_type: formData.get("task_type") || "general",
+    related_lead_id: formData.get("related_lead_id") || undefined,
+    related_customer_id: formData.get("related_customer_id") || undefined,
+    assigned_to: formData.get("assigned_to"),
+    priority: formData.get("priority") || "medium",
+    status: formData.get("status") || "pending",
+    due_date: formData.get("due_date") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid task data",
+    };
+  }
+
+  const values = parsed.data;
+
+  const updatePayload: {
+    title: string;
+    description: string | null;
+    task_type: "follow_up" | "support" | "payment" | "general" | null;
+    related_lead_id: string | null;
+    related_customer_id: string | null;
+    assigned_to: string;
+    priority: "low" | "medium" | "high" | "urgent";
+    status: "pending" | "in_progress" | "completed" | "cancelled";
+    due_date: string | null;
+    completed_at: string | null;
+  } = {
+    title: values.title,
+    description: values.description || null,
+    task_type: values.task_type,
+    related_lead_id: values.related_lead_id || null,
+    related_customer_id: values.related_customer_id || null,
+    assigned_to: values.assigned_to,
+    priority: values.priority,
+    status: values.status,
+    due_date: values.due_date ? new Date(values.due_date).toISOString() : null,
+    completed_at:
+      values.status === "completed" ? new Date().toISOString() : null,
+  };
+
+  const updateResult = await (supabase as any)
+    .from("tasks")
+    .update(updatePayload)
+    .eq("id", taskId);
+
+  if (updateResult.error) {
+    return {
+      error: String(updateResult.error.message || updateResult.error),
+    };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "task",
+    entity_id: taskId,
+    action: "updated",
+    description: `Updated task: ${values.title}`,
+  });
+
+  await (supabase as any).from("notifications").insert({
+    user_id: values.assigned_to,
+    type: "task",
+    title: "Task updated",
+    message: `A task has been updated: ${values.title}`,
+    related_table: "tasks",
+    related_id: taskId,
+  });
+
+  revalidatePath("/tasks");
+  revalidatePath(`/tasks/${taskId}`);
+  revalidatePath(`/tasks/${taskId}/edit`);
+
+  redirect(`/tasks/${taskId}`);
+}

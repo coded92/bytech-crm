@@ -80,6 +80,12 @@ export default async function CustomerDetailsPage({
           <CustomerStatusBadge status={customer.status} />
 
           <Button asChild variant="outline">
+            <Link href={`/customers/${customer.id}/edit`}>
+              Edit Customer
+            </Link>
+          </Button>
+
+          <Button asChild variant="outline">
             <Link href={`/customers/${customer.id}/statement`}>
               Customer Statement
             </Link>

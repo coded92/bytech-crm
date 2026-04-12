@@ -13,34 +13,89 @@ export interface Database {
         Row: {
           id: string;
           full_name: string;
+          first_name: string | null;
+          last_name: string | null;
           email: string | null;
           phone: string | null;
           role: "admin" | "staff";
           job_title: string | null;
           is_active: boolean;
           avatar_url: string | null;
+          address: string | null;
+          city: string | null;
+          state: string | null;
+          hire_date: string | null;
+          birthday: string | null;
+          employee_number: string | null;
+          username: string | null;
+          force_password_change: boolean;
+          allowed_modules: string[];
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id: string;
           full_name: string;
+          first_name?: string | null;
+          last_name?: string | null;
           email?: string | null;
           phone?: string | null;
           role: "admin" | "staff";
           job_title?: string | null;
           is_active?: boolean;
           avatar_url?: string | null;
+          address?: string | null;
+          city?: string | null;
+          state?: string | null;
+          hire_date?: string | null;
+          birthday?: string | null;
+          employee_number?: string | null;
+          username?: string | null;
+          force_password_change?: boolean;
+          allowed_modules?: string[];
         };
         Update: {
           full_name?: string;
+          first_name?: string | null;
+          last_name?: string | null;
           email?: string | null;
           phone?: string | null;
           role?: "admin" | "staff";
           job_title?: string | null;
           is_active?: boolean;
           avatar_url?: string | null;
+          address?: string | null;
+          city?: string | null;
+          state?: string | null;
+          hire_date?: string | null;
+          birthday?: string | null;
+          employee_number?: string | null;
+          username?: string | null;
+          force_password_change?: boolean;
+          allowed_modules?: string[];
         };
+      };
+
+      employee_files: {
+        Row: {
+          id: string;
+          employee_id: string;
+          file_name: string;
+          file_url: string;
+          file_type: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          file_name: string;
+          file_url: string;
+          file_type?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["employee_files"]["Insert"]>;
       };
 
       lead_sources: {
@@ -847,6 +902,8 @@ export interface Database {
             | "utilities"
             | "repair_materials"
             | "other";
+          supplier_id: string | null;
+          restock_order_id: string | null;
           expense_date: string;
           notes: string | null;
           created_by: string | null;
@@ -864,6 +921,8 @@ export interface Database {
             | "utilities"
             | "repair_materials"
             | "other";
+          supplier_id: string | null;
+          restock_order_id: string | null;
           expense_date: string;
           notes?: string | null;
           created_by?: string | null;
@@ -948,6 +1007,10 @@ export interface Database {
           materials_used: string | null;
           recommendation: string | null;
           customer_feedback: string | null;
+          checked_in_at: string | null;
+          work_started_at: string | null;
+          work_completed_at: string | null;
+          checked_out_at: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -989,12 +1052,42 @@ export interface Database {
           materials_used?: string | null;
           recommendation?: string | null;
           customer_feedback?: string | null;
+          checked_in_at?: string | null;
+          work_started_at: string | null;
+          work_completed_at: string | null;
+          checked_out_at: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["field_jobs"]["Insert"]>;
       };
+
+      field_job_inventory_usage: {
+        Row: {
+          id: string;
+          field_job_id: string;
+          inventory_item_id: string;
+          quantity: number;
+          unit_cost: number;
+          total_cost: number;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          field_job_id: string;
+          inventory_item_id: string;
+          quantity: number;
+          unit_cost?: number;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["field_job_inventory_usage"]["Insert"]>;
+      };
+
       field_job_photos: {
         Row: {
           id: string;
@@ -1091,6 +1184,8 @@ export interface Database {
           restock_number: string;
           supplier_id: string | null;
           status: "draft" | "ordered" | "received" | "cancelled";
+          paid_amount: number;
+          payment_status: "unpaid" | "part_paid" | "paid";
           order_date: string;
           expected_date: string | null;
           received_date: string | null;
@@ -1106,6 +1201,8 @@ export interface Database {
           restock_number?: string;
           supplier_id?: string | null;
           status?: "draft" | "ordered" | "received" | "cancelled";
+          paid_amount: number;
+          payment_status: "unpaid" | "part_paid" | "paid";
           order_date?: string;
           expected_date?: string | null;
           received_date?: string | null;
@@ -1330,3 +1427,8 @@ export type QuotationItemInsert =
   Database["public"]["Tables"]["quotation_items"]["Insert"];
 export type QuotationItemUpdate =
   Database["public"]["Tables"]["quotation_items"]["Update"];
+export type EmployeeFile = Database["public"]["Tables"]["employee_files"]["Row"];
+export type EmployeeFileInsert =
+  Database["public"]["Tables"]["employee_files"]["Insert"];
+export type EmployeeFileUpdate =
+  Database["public"]["Tables"]["employee_files"]["Update"];

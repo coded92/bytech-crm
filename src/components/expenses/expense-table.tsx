@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDate } from "@/lib/utils/format-date";
 
@@ -36,7 +37,9 @@ export function ExpenseTable({ expenses }: { expenses: ExpenseRow[] }) {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">{expense.title}</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {expense.title}
+                </p>
                 <p className="mt-1 text-xs capitalize text-slate-500">
                   {expense.category.replaceAll("_", " ")}
                 </p>
@@ -50,6 +53,15 @@ export function ExpenseTable({ expenses }: { expenses: ExpenseRow[] }) {
             <div className="mt-4 space-y-2 text-sm text-slate-600">
               <p>Date: {formatDate(expense.expense_date)}</p>
               <p>Notes: {expense.notes || "-"}</p>
+            </div>
+
+            <div className="mt-4 flex items-center gap-4">
+              <Link
+                href={`/expenses/${expense.id}/edit`}
+                className="text-sm font-medium text-slate-900 underline underline-offset-4"
+              >
+                Edit Expense
+              </Link>
             </div>
           </div>
         ))}
@@ -75,6 +87,9 @@ export function ExpenseTable({ expenses }: { expenses: ExpenseRow[] }) {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Notes
                 </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Action
+                </th>
               </tr>
             </thead>
 
@@ -95,6 +110,14 @@ export function ExpenseTable({ expenses }: { expenses: ExpenseRow[] }) {
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {expense.notes || "-"}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <Link
+                      href={`/expenses/${expense.id}/edit`}
+                      className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                    >
+                      Edit
+                    </Link>
                   </td>
                 </tr>
               ))}

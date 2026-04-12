@@ -93,6 +93,7 @@ export const config = {
     "/leads/:path*",
     "/quotations/:path*",
     "/customers/:path*",
+    "/customers/new",
     "/tasks/:path*",
     "/reports/:path*",
     "/payments/:path*",
@@ -111,5 +112,7 @@ export const config = {
     "/settings/:path*",
     "/audit-logs",
     "/search",
+    "/restocking/:path*",
+    "/suppliers/:path*",
   ],
 };

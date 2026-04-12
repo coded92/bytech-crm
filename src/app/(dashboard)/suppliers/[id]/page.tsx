@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDateTime } from "@/lib/utils/format-date";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 type SupplierRow = {
   id: string;
@@ -64,13 +66,23 @@ export default async function SupplierDetailsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-          {supplier.company_name}
-        </h2>
-        <p className="text-slate-600">
-          {supplier.is_active ? "Active supplier" : "Inactive supplier"}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            {supplier.company_name}
+          </h2>
+          <p className="text-slate-600">
+            {supplier.is_active ? "Active supplier" : "Inactive supplier"}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button asChild variant="outline">
+            <Link href={`/suppliers/${supplier.id}/statement`}>
+              Supplier Statement
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card>

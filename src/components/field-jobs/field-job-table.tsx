@@ -58,12 +58,19 @@ export function FieldJobTable({ jobs }: { jobs: FieldJobRow[] }) {
               <p>Scheduled: {formatDate(job.scheduled_date)}</p>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-4">
               <Link
                 href={`/field-jobs/${job.id}`}
                 className="text-sm font-medium text-slate-900 underline underline-offset-4"
               >
                 View Job
+              </Link>
+
+              <Link
+                href={`/field-jobs/${job.id}/edit`}
+                className="text-sm font-medium text-slate-900 underline underline-offset-4"
+              >
+                Edit Job
               </Link>
             </div>
           </div>
@@ -128,12 +135,20 @@ export function FieldJobTable({ jobs }: { jobs: FieldJobRow[] }) {
                     <FieldJobStatusBadge status={job.status} />
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <Link
-                      href={`/field-jobs/${job.id}`}
-                      className="text-sm font-medium text-slate-900 underline underline-offset-4"
-                    >
-                      View
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/field-jobs/${job.id}`}
+                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/field-jobs/${job.id}/edit`}
+                        className="text-sm font-medium text-slate-900 underline underline-offset-4"
+                      >
+                        Edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

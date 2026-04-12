@@ -202,3 +202,121 @@ export async function updateQuotationStatusAction(
 
   return { success: true };
 }
+
+export async function updateQuotationAction(
+  quotationId: string,
+  formData: FormData
+): Promise<ActionResponse | never> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const items = parseQuotationItems(formData.get("items"));
+
+  const parsed = createQuotationSchema.safeParse({
+    lead_id: formData.get("lead_id") || undefined,
+    customer_id: formData.get("customer_id") || undefined,
+    company_name: formData.get("company_name"),
+    contact_person: formData.get("contact_person") || undefined,
+    email: formData.get("email") || undefined,
+    phone: formData.get("phone") || undefined,
+    address: formData.get("address") || undefined,
+    valid_until: formData.get("valid_until") || undefined,
+    discount: formData.get("discount") || 0,
+    tax: formData.get("tax") || 0,
+    notes: formData.get("notes") || undefined,
+    items,
+  });
+
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid quotation data",
+    };
+  }
+
+  const values = parsed.data;
+
+  const subtotal = values.items.reduce(
+    (sum, item) => sum + item.quantity * item.unit_price,
+    0
+  );
+
+  const total = subtotal - values.discount + values.tax;
+
+  const quotationResult = await (supabase as any)
+    .from("quotations")
+    .update({
+      lead_id: values.lead_id || null,
+      customer_id: values.customer_id || null,
+      company_name: values.company_name,
+      contact_person: values.contact_person || null,
+      email: values.email || null,
+      phone: values.phone || null,
+      address: values.address || null,
+      valid_until: values.valid_until || null,
+      discount: values.discount,
+      tax: values.tax,
+      subtotal,
+      total,
+      notes: values.notes || null,
+    })
+    .eq("id", quotationId);
+
+  if (quotationResult.error) {
+    return {
+      error: String(quotationResult.error.message || "Failed to update quotation"),
+    };
+  }
+
+  const deleteItemsResult = await (supabase as any)
+    .from("quotation_items")
+    .delete()
+    .eq("quotation_id", quotationId);
+
+  if (deleteItemsResult.error) {
+    return {
+      error: String(deleteItemsResult.error.message || deleteItemsResult.error),
+    };
+  }
+
+  const quotationItems = values.items.map((item) => ({
+    quotation_id: quotationId,
+    item_name: item.item_name,
+    description: item.description || null,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    total_price: item.quantity * item.unit_price,
+  }));
+
+  const itemsResult = await (supabase as any)
+    .from("quotation_items")
+    .insert(quotationItems);
+
+  if (itemsResult.error) {
+    return {
+      error: String(itemsResult.error.message || itemsResult.error),
+    };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "quotation",
+    entity_id: quotationId,
+    action: "updated",
+    description: `Updated quotation for ${values.company_name}`,
+  });
+
+  revalidatePath("/quotations");
+  revalidatePath(`/quotations/${quotationId}`);
+  revalidatePath(`/quotations/${quotationId}/edit`);
+  if (values.lead_id) revalidatePath(`/leads/${values.lead_id}`);
+  if (values.customer_id) revalidatePath(`/customers/${values.customer_id}`);
+
+  redirect(`/quotations/${quotationId}`);
+}

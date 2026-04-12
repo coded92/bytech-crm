@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDateTime } from "@/lib/utils/format-date";
 import { StockMovementForm } from "@/components/inventory/stock-movement-form";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type InventoryDetailsPageProps = {
@@ -41,52 +43,79 @@ type FieldJobOption = {
   job_number: string;
 };
 
+type UsageRow = {
+  id: string;
+  quantity: number;
+  total_cost: number;
+  created_at: string;
+  field_job: {
+    job_number: string | null;
+    title: string | null;
+  } | null;
+};
+
 export default async function InventoryDetailsPage({
   params,
 }: InventoryDetailsPageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: itemData }, { data: movementsData }, { data: fieldJobsData }] =
-    await Promise.all([
-      supabase
-        .from("inventory_items")
-        .select(`
-          id,
-          item_code,
-          item_name,
-          category,
-          sku,
-          unit,
-          current_quantity,
-          minimum_quantity,
-          unit_cost,
-          notes,
-          created_at,
-          updated_at
-        `)
-        .eq("id", id)
-        .maybeSingle(),
+  const [
+    { data: itemData },
+    { data: movementsData },
+    { data: fieldJobsData },
+    { data: usageData },
+  ] = await Promise.all([
+    supabase
+      .from("inventory_items")
+      .select(`
+        id,
+        item_code,
+        item_name,
+        category,
+        sku,
+        unit,
+        current_quantity,
+        minimum_quantity,
+        unit_cost,
+        notes,
+        created_at,
+        updated_at
+      `)
+      .eq("id", id)
+      .maybeSingle(),
 
-      supabase
-        .from("inventory_movements")
-        .select(`
-          id,
-          movement_type,
-          quantity,
-          unit_cost,
-          note,
-          created_at,
-          field_job:field_jobs(job_number)
-        `)
-        .eq("inventory_item_id", id)
-        .order("created_at", { ascending: false }),
+    supabase
+      .from("inventory_movements")
+      .select(`
+        id,
+        movement_type,
+        quantity,
+        unit_cost,
+        note,
+        created_at,
+        field_job:field_jobs(job_number)
+      `)
+      .eq("inventory_item_id", id)
+      .order("created_at", { ascending: false }),
 
-      supabase
-        .from("field_jobs")
-        .select("id, job_number")
-        .order("created_at", { ascending: false }),
-    ]);
+    supabase
+      .from("field_jobs")
+      .select("id, job_number")
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("field_job_inventory_usage")
+      .select(`
+        id,
+        quantity,
+        total_cost,
+        created_at,
+        field_job:field_jobs(job_number, title)
+      `)
+      .eq("inventory_item_id", id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   if (!itemData) {
     notFound();
@@ -95,6 +124,7 @@ export default async function InventoryDetailsPage({
   const item = itemData as ItemRow;
   const movements = (movementsData ?? []) as MovementRow[];
   const fieldJobs = (fieldJobsData ?? []) as FieldJobOption[];
+  const usages = (usageData ?? []) as UsageRow[];
 
   const isLowStock =
     Number(item.current_quantity) <= Number(item.minimum_quantity);
@@ -109,7 +139,7 @@ export default async function InventoryDetailsPage({
           <p className="text-slate-600">{item.item_code}</p>
         </div>
 
-        <div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {isLowStock ? (
             <span className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
               Low Stock
@@ -119,6 +149,10 @@ export default async function InventoryDetailsPage({
               In Stock
             </span>
           )}
+
+          <Button asChild variant="outline">
+            <Link href={`/inventory/${item.id}/edit`}>Edit Item</Link>
+          </Button>
         </div>
       </div>
 
@@ -132,12 +166,27 @@ export default async function InventoryDetailsPage({
             <CardContent className="grid gap-4 md:grid-cols-2">
               <InfoItem label="Item Code" value={item.item_code} />
               <InfoItem label="Item Name" value={item.item_name} />
-              <InfoItem label="Category" value={item.category.replaceAll("_", " ")} />
+              <InfoItem
+                label="Category"
+                value={item.category.replaceAll("_", " ")}
+              />
               <InfoItem label="SKU" value={item.sku || "-"} />
-              <InfoItem label="Current Quantity" value={`${item.current_quantity} ${item.unit}`} />
-              <InfoItem label="Minimum Quantity" value={`${item.minimum_quantity} ${item.unit}`} />
-              <InfoItem label="Unit Cost" value={formatCurrency(item.unit_cost)} />
-              <InfoItem label="Updated At" value={formatDateTime(item.updated_at)} />
+              <InfoItem
+                label="Current Quantity"
+                value={`${item.current_quantity} ${item.unit}`}
+              />
+              <InfoItem
+                label="Minimum Quantity"
+                value={`${item.minimum_quantity} ${item.unit}`}
+              />
+              <InfoItem
+                label="Unit Cost"
+                value={formatCurrency(item.unit_cost)}
+              />
+              <InfoItem
+                label="Updated At"
+                value={formatDateTime(item.updated_at)}
+              />
             </CardContent>
           </Card>
 
@@ -160,7 +209,9 @@ export default async function InventoryDetailsPage({
 
             <CardContent className="space-y-4">
               {movements.length === 0 ? (
-                <p className="text-sm text-slate-500">No movements recorded yet.</p>
+                <p className="text-sm text-slate-500">
+                  No movements recorded yet.
+                </p>
               ) : (
                 movements.map((movement) => (
                   <div
@@ -185,6 +236,43 @@ export default async function InventoryDetailsPage({
 
                       <p className="text-sm text-slate-500">
                         {formatDateTime(movement.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Field Job Usage History</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {usages.length === 0 ? (
+                <p className="text-sm text-slate-500">No field job usage yet.</p>
+              ) : (
+                usages.map((usage) => (
+                  <div
+                    key={usage.id}
+                    className="rounded-xl border border-slate-200 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          {usage.field_job?.job_number || "-"}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {usage.field_job?.title || "-"}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Qty Used: {usage.quantity}
+                        </p>
+                      </div>
+
+                      <p className="text-sm text-slate-500">
+                        {formatDateTime(usage.created_at)}
                       </p>
                     </div>
                   </div>

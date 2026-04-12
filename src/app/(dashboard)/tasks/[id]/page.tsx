@@ -81,6 +81,12 @@ export default async function TaskDetailsPage({
             {task.priority}
           </Badge>
           <TaskStatusBadge status={task.status} />
+
+           <Button asChild variant="outline">
+            <Link href={`/tasks/${task.id}/edit`}>
+              Edit Task
+            </Link>
+          </Button>
         </div>
       </div>
 

@@ -241,3 +241,96 @@ export async function updateLeadStatusAction(
 
   return { success: true };
 }
+
+export async function updateLeadAction(leadId: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const parsed = leadFormSchema.safeParse({
+    company_name: formData.get("company_name"),
+    contact_person: formData.get("contact_person"),
+    phone: formData.get("phone"),
+    email: formData.get("email"),
+    business_type: formData.get("business_type"),
+    industry: formData.get("industry"),
+    address: formData.get("address"),
+    city: formData.get("city"),
+    state: formData.get("state"),
+    source_id: formData.get("source_id") || undefined,
+    assigned_to: formData.get("assigned_to") || undefined,
+    status: formData.get("status") || "new",
+    estimated_value: formData.get("estimated_value") || 0,
+    interested_plan: formData.get("interested_plan") || "unknown",
+    next_follow_up_at: formData.get("next_follow_up_at") || undefined,
+    lost_reason: formData.get("lost_reason") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid form data",
+    };
+  }
+
+  const values = parsed.data;
+
+  const { error } = await supabase
+    .from("leads")
+    .update({
+      company_name: values.company_name,
+      contact_person: values.contact_person,
+      phone: values.phone || null,
+      email: values.email || null,
+      business_type: values.business_type || null,
+      industry: values.industry || null,
+      address: values.address || null,
+      city: values.city || null,
+      state: values.state || null,
+      source_id: values.source_id || null,
+      assigned_to: values.assigned_to || user.id,
+      status: values.status,
+      estimated_value: values.estimated_value,
+      interested_plan: values.interested_plan,
+      next_follow_up_at: values.next_follow_up_at
+        ? new Date(values.next_follow_up_at).toISOString()
+        : null,
+      lost_reason: values.lost_reason || null,
+      last_contacted_at: new Date().toISOString(),
+    } as never)
+    .eq("id", leadId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await supabase.from("lead_activities").insert({
+    lead_id: leadId,
+    activity_type: "updated",
+    actor_id: user.id,
+    new_value: {
+      company_name: values.company_name,
+      status: values.status,
+      assigned_to: values.assigned_to || user.id,
+    },
+  } as never);
+
+  await supabase.from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "lead",
+    entity_id: leadId,
+    action: "updated",
+    description: `Updated lead for ${values.company_name}`,
+  } as never);
+
+  revalidatePath("/leads");
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath(`/leads/${leadId}/edit`);
+
+  redirect(`/leads/${leadId}`);
+}

@@ -32,7 +32,7 @@ export default async function InvoicesPage() {
             Manage setup fees, subscriptions, and custom billing.
           </p>
         </div>
-
+        
         <Button asChild>
           <Link href="/payments/invoices/new">Create Invoice</Link>
         </Button>

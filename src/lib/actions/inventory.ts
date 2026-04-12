@@ -144,3 +144,165 @@ export async function createInventoryMovementAction(formData: FormData) {
 
   return { success: true };
 }
+
+export async function updateInventoryItemAction(
+  itemId: string,
+  formData: FormData
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const itemName = String(formData.get("item_name") || "").trim();
+  const itemCode = String(formData.get("item_code") || "").trim();
+  const category = String(formData.get("category") || "").trim();
+  const sku = String(formData.get("sku") || "").trim();
+  const unit = String(formData.get("unit") || "").trim();
+  const minimumQuantity = Number(formData.get("minimum_quantity") || 0);
+  const unitCost = Number(formData.get("unit_cost") || 0);
+  const notes = String(formData.get("notes") || "").trim();
+
+  if (!itemName) {
+    return { error: "Item name is required" };
+  }
+
+  if (!itemCode) {
+    return { error: "Item code is required" };
+  }
+
+  if (!unit) {
+    return { error: "Unit is required" };
+  }
+
+  const { error } = await (supabase as any)
+    .from("inventory_items")
+    .update({
+      item_name: itemName,
+      item_code: itemCode,
+      category,
+      sku: sku || null,
+      unit,
+      minimum_quantity: minimumQuantity,
+      unit_cost: unitCost,
+      notes: notes || null,
+    })
+    .eq("id", itemId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "inventory_item",
+    entity_id: itemId,
+    action: "updated",
+    description: `Updated inventory item: ${itemName}`,
+  });
+
+  revalidatePath("/inventory");
+  revalidatePath(`/inventory/${itemId}`);
+  revalidatePath(`/inventory/${itemId}/edit`);
+
+  return { success: true };
+}
+
+export async function adjustInventoryStockAction(
+  itemId: string,
+  formData: FormData
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const movementType = String(formData.get("movement_type") || "").trim();
+  const quantity = Number(formData.get("quantity") || 0);
+  const unitCost = Number(formData.get("unit_cost") || 0);
+  const note = String(formData.get("note") || "").trim();
+
+  if (!movementType) {
+    return { error: "Adjustment type is required" };
+  }
+
+  if (!quantity || quantity <= 0) {
+    return { error: "Quantity must be greater than zero" };
+  }
+
+  const { data: item, error: itemError } = await (supabase as any)
+    .from("inventory_items")
+    .select("item_name, current_quantity")
+    .eq("id", itemId)
+    .single();
+
+  if (itemError || !item) {
+    return { error: itemError?.message ?? "Inventory item not found" };
+  }
+
+  const currentQuantity = Number(item.current_quantity || 0);
+
+  let nextQuantity = currentQuantity;
+
+  if (movementType === "stock_in") {
+    nextQuantity = currentQuantity + quantity;
+  } else if (movementType === "stock_out") {
+    nextQuantity = currentQuantity - quantity;
+  } else if (movementType === "adjustment") {
+    nextQuantity = currentQuantity + quantity;
+  }
+
+  if (nextQuantity < 0) {
+    return { error: "Stock cannot go below zero" };
+  }
+
+  const { error: movementError } = await (supabase as any)
+    .from("inventory_movements")
+    .insert({
+      inventory_item_id: itemId,
+      movement_type: movementType,
+      quantity,
+      unit_cost: unitCost || null,
+      note: note || null,
+      created_by: user.id,
+    });
+
+  if (movementError) {
+    return { error: movementError.message };
+  }
+
+  const { error: updateError } = await (supabase as any)
+    .from("inventory_items")
+    .update({
+      current_quantity: nextQuantity,
+    })
+    .eq("id", itemId);
+
+  if (updateError) {
+    return { error: updateError.message };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "inventory_item",
+    entity_id: itemId,
+    action: "stock_adjusted",
+    description: `Adjusted stock for ${item.item_name}`,
+  });
+
+  revalidatePath("/inventory");
+  revalidatePath(`/inventory/${itemId}`);
+  revalidatePath(`/inventory/${itemId}/edit`);
+
+  return { success: true };
+}

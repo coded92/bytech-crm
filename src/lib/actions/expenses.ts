@@ -228,3 +228,80 @@ export async function createSupplierPurchaseExpenseAction(formData: FormData) {
 
   return { success: true };
 }
+
+export async function updateExpenseAction(
+  expenseId: string,
+  formData: FormData
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const { data: profileData, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError) {
+    return { error: profileError.message };
+  }
+
+  const profile = profileData as { role: "admin" | "staff" } | null;
+
+  if (!profile || profile.role !== "admin") {
+    return { error: "Only admins can edit expenses." };
+  }
+
+  const parsed = createExpenseSchema.safeParse({
+    title: formData.get("title"),
+    amount: formData.get("amount"),
+    category: formData.get("category"),
+    expense_date: formData.get("expense_date"),
+    notes: formData.get("notes") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid expense data",
+    };
+  }
+
+  const values = parsed.data;
+
+  const { error } = await (supabase as any)
+    .from("expenses")
+    .update({
+      title: values.title,
+      amount: values.amount,
+      category: values.category,
+      expense_date: values.expense_date,
+      notes: values.notes || null,
+    })
+    .eq("id", expenseId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: user.id,
+    entity_type: "expense",
+    entity_id: expenseId,
+    action: "updated",
+    description: `Updated expense: ${values.title}`,
+  });
+
+  revalidatePath("/expenses");
+  revalidatePath(`/expenses/${expenseId}`);
+  revalidatePath(`/expenses/${expenseId}/edit`);
+  revalidatePath("/dashboard");
+
+  redirect("/expenses");
+}
