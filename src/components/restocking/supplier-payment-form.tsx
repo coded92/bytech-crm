@@ -28,7 +28,7 @@ export function SupplierPaymentForm({
         startTransition(async () => {
           const result = await createSupplierPurchaseExpenseAction(formData);
 
-          if (result?.error) {
+          if ("error" in result) {
             setError(result.error);
             return;
           }
