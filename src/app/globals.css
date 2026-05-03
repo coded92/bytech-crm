@@ -74,4 +74,15 @@ body {
   .print\:bg-white {
     background: white !important;
   }
+  .quotation-header {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem !important;
+  }
+  .invoice-header {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem !important;
+  }
+
 }

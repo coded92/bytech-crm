@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate, formatDateTime } from "@/lib/utils/format-date";
+import { formatDate } from "@/lib/utils/format-date";
 import { DocumentShell } from "@/components/shared/document-shell";
-import { DocumentInfoRow } from "@/components/shared/document-info-row";
 
 type PrintQuotationPageProps = {
   params: Promise<{ id: string }>;
@@ -51,11 +50,7 @@ export default async function PrintQuotationPage({
     { data: quotationData, error: quotationError },
     { data: itemsData, error: itemsError },
   ] = await Promise.all([
-    supabase
-      .from("quotations")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle(),
+    supabase.from("quotations").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("quotation_items")
       .select("*")
@@ -79,127 +74,140 @@ export default async function PrintQuotationPage({
   const items = (itemsData ?? []) as QuotationItemRow[];
 
   return (
-    <DocumentShell
-      title="Quotation"
-      documentNumber={quotation.quote_number}
-    >
+    <DocumentShell title="Quotation" documentNumber={quotation.quote_number}>
       <div className="space-y-8">
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-slate-900">
+        <div className="grid gap-8 md:grid-cols-2 print:grid-cols-2">
+
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-950">
               Quotation To
             </h3>
-            <div className="mt-4 space-y-3">
-              <DocumentInfoRow label="Company" value={quotation.company_name} />
-              <DocumentInfoRow
-                label="Contact Person"
-                value={quotation.contact_person}
-              />
-              <DocumentInfoRow label="Email" value={quotation.email} />
-              <DocumentInfoRow label="Phone" value={quotation.phone} />
-              <DocumentInfoRow label="Address" value={quotation.address} />
+            <div className="mt-3 space-y-1 text-sm text-slate-700">
+              <p className="font-semibold text-slate-950">
+                {quotation.company_name}
+              </p>
+              <p>{quotation.contact_person || "-"}</p>
+              <p>{quotation.email || "-"}</p>
+              <p>{quotation.phone || "-"}</p>
+              <p className="whitespace-pre-wrap">{quotation.address || "-"}</p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Document Details
-            </h3>
-            <div className="mt-4 space-y-3">
-              <DocumentInfoRow
-                label="Quote Number"
-                value={quotation.quote_number}
-              />
-              <DocumentInfoRow label="Status" value={quotation.status} />
-              <DocumentInfoRow
-                label="Created At"
-                value={formatDateTime(quotation.created_at)}
-              />
-              <DocumentInfoRow
-                label="Valid Until"
-                value={formatDate(quotation.valid_until)}
-              />
-            </div>
+          <div className="space-y-2 text-sm">
+            <InfoRow label="Quote Number" value={quotation.quote_number} />
+            <InfoRow label="Quote Date" value={formatDate(quotation.created_at)} />
+            <InfoRow label="Valid Until" value={formatDate(quotation.valid_until)} />
+            <InfoRow label="Status" value={quotation.status.replaceAll("_", " ")} />
+            <InfoRow
+              label="Total (NGN)"
+              value={formatCurrency(quotation.total)}
+              strong
+            />
           </div>
         </div>
 
-        <div>
-          <h3 className="mb-4 text-sm font-semibold text-slate-900">
-            Items
-          </h3>
+        <div className="overflow-hidden border border-slate-200">
+          <table className="min-w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-100">
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-700">
+                  Items
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
+                  Quantity
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
+                  Price
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
+                  Amount
+                </th>
+              </tr>
+            </thead>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <tbody>
+              {items.length === 0 ? (
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    Item
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                    Description
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">
-                    Qty
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">
-                    Unit Price
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">
-                    Total
-                  </th>
+                  <td
+                    colSpan={4}
+                    className="px-4 py-6 text-center text-sm text-slate-500"
+                  >
+                    No items found.
+                  </td>
                 </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-100">
-                {items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                      {item.item_name}
+              ) : (
+                items.map((item) => (
+                  <tr key={item.id} className="border-t border-slate-200">
+                    <td className="px-4 py-4 text-sm text-slate-900">
+                      <p className="font-semibold">{item.item_name}</p>
+                      {item.description ? (
+                        <p className="mt-1 whitespace-pre-wrap text-slate-600">
+                          {item.description}
+                        </p>
+                      ) : null}
                     </td>
-                    <td className="px-4 py-4 text-sm text-slate-600">
-                      {item.description || "-"}
-                    </td>
-                    <td className="px-4 py-4 text-right text-sm text-slate-600">
+                    <td className="px-4 py-4 text-right text-sm text-slate-700">
                       {item.quantity}
                     </td>
-                    <td className="px-4 py-4 text-right text-sm text-slate-600">
+                    <td className="px-4 py-4 text-right text-sm text-slate-700">
                       {formatCurrency(item.unit_price)}
                     </td>
-                    <td className="px-4 py-4 text-right text-sm font-medium text-slate-900">
+                    <td className="px-4 py-4 text-right text-sm font-semibold text-slate-950">
                       {formatCurrency(item.total_price)}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {itemsError ? (
-            <p className="mt-3 text-sm text-red-600">
-              Failed to load items: {itemsError.message}
-            </p>
-          ) : null}
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
-        <div className="ml-auto max-w-sm space-y-3 rounded-xl border border-slate-200 p-5">
+        {itemsError ? (
+          <p className="text-sm text-red-600">
+            Failed to load items: {itemsError.message}
+          </p>
+        ) : null}
+
+        <div className="ml-auto w-full max-w-sm space-y-3 text-sm">
           <SummaryRow label="Subtotal" value={formatCurrency(quotation.subtotal)} />
           <SummaryRow label="Discount" value={formatCurrency(quotation.discount)} />
           <SummaryRow label="Tax" value={formatCurrency(quotation.tax)} />
-          <SummaryRow
-            label="Total"
-            value={formatCurrency(quotation.total)}
-            strong
-          />
+          <SummaryRow label="Total" value={formatCurrency(quotation.total)} strong />
         </div>
 
-        <div className="rounded-xl border border-slate-200 p-5">
-          <h3 className="text-sm font-semibold text-slate-900">Notes</h3>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
+        <div>
+          <h3 className="text-sm font-bold text-slate-950">Notes / Terms</h3>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
             {quotation.notes || "-"}
           </p>
         </div>
       </div>
     </DocumentShell>
+  );
+}
+
+function InfoRow({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value?: string | number | null;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex justify-between gap-6">
+      <span className="text-slate-600">{label}:</span>
+      <span
+        className={
+          strong
+            ? "text-right text-base font-bold text-slate-950"
+            : "text-right font-medium text-slate-950"
+        }
+      >
+        {value ?? "-"}
+      </span>
+    </div>
   );
 }
 
@@ -213,13 +221,15 @@ function SummaryRow({
   strong?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span className={strong ? "font-semibold text-slate-900" : "text-slate-600"}>
-        {label}
-      </span>
-      <span className={strong ? "text-lg font-bold text-slate-900" : "text-slate-900"}>
-        {value}
-      </span>
+    <div
+      className={
+        strong
+          ? "flex justify-between border-t border-slate-300 pt-3 text-base font-bold text-slate-950"
+          : "flex justify-between text-slate-700"
+      }
+    >
+      <span>{label}</span>
+      <span>{value}</span>
     </div>
   );
 }
