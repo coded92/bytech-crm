@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -64,6 +65,7 @@ function getLink(table: string | null, id: string | null) {
 }
 
 export default async function NotificationsPage() {
+  await requireModule("notifications");
   const supabase = await createClient();
 
   const {

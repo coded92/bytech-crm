@@ -11,6 +11,15 @@ import {
 
 type ActionResponse = { success: true } | { error: string };
 
+type UserDepartment =
+  | "sales"
+  | "operations"
+  | "support"
+  | "engineering"
+  | "inventory"
+  | "finance"
+  | "hr";
+
 function buildFullName(firstName: string, lastName?: string) {
   return `${firstName} ${lastName ?? ""}`.trim();
 }
@@ -24,23 +33,18 @@ async function requireAdminContext() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return {
-      error: "Unauthorized",
-      supabase: null,
-      adminClient: null,
-      user: null,
-    };
+    return { error: "Unauthorized", supabase: null, adminClient: null, user: null };
   }
 
-  const profileResult = await (supabase as any)
+ const { data: profileData, error } = await (supabase as any)
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  const profile = profileResult.data as { role: string } | null;
+  const profile = profileData as { role: "admin" | "staff" } | null;
 
-  if (!profile || profile.role !== "admin") {
+  if (error || !profile || profile.role !== "admin") {
     return {
       error: "Only admins can perform this action.",
       supabase: null,
@@ -49,12 +53,7 @@ async function requireAdminContext() {
     };
   }
 
-  return {
-    error: null,
-    supabase,
-    adminClient,
-    user,
-  };
+  return { error: null, supabase, adminClient, user };
 }
 
 export async function createUserAction(
@@ -73,6 +72,7 @@ export async function createUserAction(
     password: formData.get("password"),
     username: formData.get("username"),
     role: formData.get("role"),
+    department: formData.get("department"),
     job_title: formData.get("job_title") || undefined,
     phone: formData.get("phone") || undefined,
     address: formData.get("address") || undefined,
@@ -86,12 +86,12 @@ export async function createUserAction(
   });
 
   if (!parsed.success) {
-    return {
-      error: parsed.error.issues[0]?.message ?? "Invalid user data",
-    };
+    return { error: parsed.error.issues[0]?.message ?? "Invalid user data" };
   }
 
-  const values = parsed.data;
+  const values = parsed.data as typeof parsed.data & {
+    department: UserDepartment;
+  };
   const fullName = buildFullName(values.first_name, values.last_name);
 
   const createUserResult = await ctx.adminClient.auth.admin.createUser({
@@ -104,28 +104,28 @@ export async function createUserAction(
       last_name: values.last_name || null,
       username: values.username,
       role: values.role,
+      department: values.department,
       force_password_change: values.force_password_change,
     },
   });
 
-  const createdUser = createUserResult.data;
-  const createUserError = createUserResult.error;
+  const createdUser = createUserResult.data.user;
 
-  if (createUserError || !createdUser.user) {
-    return {
-      error: createUserError?.message ?? "Failed to create user",
-    };
+  if (createUserResult.error || !createdUser) {
+    return { error: createUserResult.error?.message ?? "Failed to create user" };
   }
 
-  const profileUpdateResult = await (ctx.adminClient as any)
+  const { error: profileUpdateError } = await (ctx.adminClient as any)
     .from("profiles")
-    .update({
+    .upsert({
+      id: createdUser.id,
       full_name: fullName,
       first_name: values.first_name,
       last_name: values.last_name || null,
       email: values.email,
       username: values.username,
       role: values.role,
+      department: values.department,
       job_title: values.job_title || null,
       phone: values.phone || null,
       address: values.address || null,
@@ -138,20 +138,16 @@ export async function createUserAction(
       allowed_modules: values.allowed_modules,
       is_active: true,
     })
-    .eq("id", createdUser.user.id);
+    .eq("id", createdUser.id);
 
-  if (profileUpdateResult.error) {
-    return {
-      error: String(
-        profileUpdateResult.error.message || profileUpdateResult.error
-      ),
-    };
+  if (profileUpdateError) {
+    return { error: profileUpdateError.message };
   }
 
   await (ctx.supabase as any).from("activity_logs").insert({
     actor_id: ctx.user.id,
     entity_type: "user",
-    entity_id: createdUser.user.id,
+    entity_id: createdUser.id,
     action: "created",
     description: `Created user account for ${fullName}`,
   });
@@ -176,6 +172,7 @@ export async function updateUserAction(
     email: formData.get("email"),
     username: formData.get("username"),
     role: formData.get("role"),
+    department: formData.get("department"),
     job_title: formData.get("job_title") || undefined,
     phone: formData.get("phone") || undefined,
     address: formData.get("address") || undefined,
@@ -190,15 +187,15 @@ export async function updateUserAction(
   });
 
   if (!parsed.success) {
-    return {
-      error: parsed.error.issues[0]?.message ?? "Invalid user data",
-    };
+    return { error: parsed.error.issues[0]?.message ?? "Invalid user data" };
   }
 
-  const values = parsed.data;
+  const values = parsed.data as typeof parsed.data & {
+    department: UserDepartment;
+  };
   const fullName = buildFullName(values.first_name, values.last_name);
 
-  const profileUpdateResult = await (ctx.adminClient as any)
+  const { error: profileUpdateError } = await (ctx.adminClient as any)
     .from("profiles")
     .update({
       full_name: fullName,
@@ -207,6 +204,7 @@ export async function updateUserAction(
       email: values.email,
       username: values.username,
       role: values.role,
+      department: values.department,
       job_title: values.job_title || null,
       phone: values.phone || null,
       address: values.address || null,
@@ -221,12 +219,8 @@ export async function updateUserAction(
     })
     .eq("id", userId);
 
-  if (profileUpdateResult.error) {
-    return {
-      error: String(
-        profileUpdateResult.error.message || profileUpdateResult.error
-      ),
-    };
+  if (profileUpdateError) {
+    return { error: profileUpdateError.message };
   }
 
   const authUpdateResult = await ctx.adminClient.auth.admin.updateUserById(
@@ -239,15 +233,14 @@ export async function updateUserAction(
         last_name: values.last_name || null,
         username: values.username,
         role: values.role,
+        department: values.department,
         force_password_change: values.force_password_change,
       },
     }
   );
 
   if (authUpdateResult.error) {
-    return {
-      error: authUpdateResult.error.message,
-    };
+    return { error: authUpdateResult.error.message };
   }
 
   await (ctx.supabase as any).from("activity_logs").insert({
@@ -271,30 +264,16 @@ export async function toggleUserActiveAction(
 ): Promise<ActionResponse> {
   const ctx = await requireAdminContext();
 
-  if (ctx.error || !ctx.supabase || !ctx.adminClient || !ctx.user) {
+  if (ctx.error || !ctx.adminClient) {
     return { error: ctx.error ?? "Unauthorized" };
   }
 
-  const result = await (ctx.adminClient as any)
-    .from("profiles")
+  const { error } = await (ctx.adminClient as any)
+  .from("profiles")
     .update({ is_active: nextValue })
     .eq("id", userId);
 
-  if (result.error) {
-    return {
-      error: String(result.error.message || result.error),
-    };
-  }
-
-  await (ctx.supabase as any).from("activity_logs").insert({
-    actor_id: ctx.user.id,
-    entity_type: "user",
-    entity_id: userId,
-    action: nextValue ? "activated" : "deactivated",
-    description: nextValue
-      ? "Activated user account"
-      : "Deactivated user account",
-  });
+  if (error) return { error: error.message };
 
   revalidatePath("/users");
   revalidatePath(`/users/${userId}`);
@@ -315,9 +294,7 @@ export async function sendPasswordResetAction(
     redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/login`,
   });
 
-  if (result.error) {
-    return { error: result.error.message };
-  }
+  if (result.error) return { error: result.error.message };
 
   return { success: true };
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { formatDate } from "@/lib/utils/format-date";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +16,7 @@ type RestockRow = {
 };
 
 export default async function RestockingPage() {
+  await requireModule("restocking");
   const supabase = await createClient();
 
   const { data, error } = await supabase

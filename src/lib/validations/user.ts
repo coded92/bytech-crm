@@ -23,6 +23,16 @@ const availableModules = [
   "messages",
 ] as const;
 
+const departments = [
+  "sales",
+  "operations",
+  "support",
+  "engineering",
+  "inventory",
+  "finance",
+  "hr",
+] as const;
+
 export const createUserSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().optional(),
@@ -30,6 +40,8 @@ export const createUserSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   username: z.string().min(3, "Username is required"),
   role: z.enum(["admin", "staff"]),
+  department: z.enum(departments),
+
   job_title: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
@@ -48,6 +60,8 @@ export const updateUserSchema = z.object({
   email: z.string().email("Enter a valid email"),
   username: z.string().min(3, "Username is required"),
   role: z.enum(["admin", "staff"]),
+  department: z.enum(departments),
+
   job_title: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),

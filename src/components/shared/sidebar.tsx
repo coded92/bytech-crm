@@ -3,61 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Wallet } from "lucide-react";
-import { Headset } from "lucide-react";
-import { MonitorSmartphone } from "lucide-react";
-import { Package } from "lucide-react";
-import { Settings } from "lucide-react";
-import { ShieldCheck } from "lucide-react";
-import { Wrench } from "lucide-react";
-import { Boxes } from "lucide-react";
-import { Truck, ShoppingCart } from "lucide-react";
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Building2,
-  CheckSquare,
-  ClipboardList,
-  CreditCard,
-  Bell,
-} from "lucide-react";
+import { getVisibleNavItems } from "@/components/shared/nav-items";
 
 type SidebarProps = {
   role: "admin" | "staff";
+  allowedModules: string[];
   closeSidebar?: () => void;
 };
 
-export function Sidebar({ role, closeSidebar }: SidebarProps) {
+export function Sidebar({
+  role,
+  allowedModules,
+  closeSidebar,
+}: SidebarProps) {
   const pathname = usePathname();
 
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/leads", label: "Leads", icon: Users },
-    { href: "/quotations", label: "Quotations", icon: FileText },
-    { href: "/customers", label: "Customers", icon: Building2 },
-    { href: "/tasks", label: "Tasks", icon: CheckSquare },
-    { href: "/reports", label: "Daily Reports", icon: ClipboardList },
-    { href: "/payments/invoices", label: "Invoices", icon: CreditCard },
-    { href: "/expenses", label: "Expenses", icon: Wallet },
-    { href: "/notifications", label: "Notifications", icon: Bell },
-    { href: "/deployments", label: "Deployments", icon: MonitorSmartphone },
-    { href: "/assets", label: "Assets", icon: Package },
-    { href: "/field-jobs", label: "Field Jobs", icon: Wrench },
-    { href: "/field-jobs/daily-report", label: "Engineer Daily", icon: Wrench },
-    { href: "/inventory", label: "Inventory", icon: Boxes },
-    { href: "/support", label: "Support", icon: Headset },
-    { href: "/suppliers", label: "Suppliers", icon: Truck },
-    { href: "/restocking", label: "Restocking", icon: ShoppingCart },
-    { href: "/suppliers/payables", label: "Supplier Payables", icon: Truck },
-    ...(role === "admin"
-      ? [
-          { href: "/users", label: "Users", icon: Users },
-          { href: "/settings/company", label: "Settings", icon: Settings },
-          { href: "/audit-logs", label: "Audit Logs", icon: ShieldCheck },
-        ]
-      : []),
-  ];
+  const navItems = getVisibleNavItems({
+    role,
+    allowedModules,
+  });
 
   return (
     <aside className="h-full w-72 shrink-0 border-r border-slate-200 bg-white sm:h-screen sm:w-64">
@@ -73,8 +37,10 @@ export function Sidebar({ role, closeSidebar }: SidebarProps) {
       <nav className="space-y-2 p-4">
         {navItems.map((item) => {
           const Icon = item.icon;
+
           const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+            pathname === item.href ||
+            pathname.startsWith(`${item.href}/`);
 
           return (
             <Link
@@ -96,6 +62,7 @@ export function Sidebar({ role, closeSidebar }: SidebarProps) {
                     : "text-slate-500 group-hover:text-slate-900"
                 )}
               />
+
               {item.label}
             </Link>
           );

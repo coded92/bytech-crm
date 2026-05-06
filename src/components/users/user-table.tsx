@@ -5,6 +5,7 @@ type UserRow = {
   full_name: string;
   email: string | null;
   role: "admin" | "staff";
+  department: string | null;
   job_title: string | null;
   phone: string | null;
   is_active: boolean;
@@ -22,6 +23,7 @@ export function UserTable({ users }: { users: UserRow[] }) {
 
   return (
     <>
+      {/* Mobile */}
       <div className="space-y-4 sm:hidden">
         {users.map((user) => (
           <div
@@ -33,6 +35,7 @@ export function UserTable({ users }: { users: UserRow[] }) {
                 <p className="text-sm font-semibold text-slate-900">
                   {user.full_name}
                 </p>
+
                 <p className="mt-1 text-xs text-slate-500">
                   {user.email ?? "-"}
                 </p>
@@ -51,7 +54,13 @@ export function UserTable({ users }: { users: UserRow[] }) {
 
             <div className="mt-4 space-y-2 text-sm text-slate-600">
               <p className="capitalize">Role: {user.role}</p>
+
+              <p className="capitalize">
+                Department: {user.department ?? "-"}
+              </p>
+
               <p>Job Title: {user.job_title ?? "-"}</p>
+
               <p>Phone: {user.phone ?? "-"}</p>
             </div>
 
@@ -67,6 +76,7 @@ export function UserTable({ users }: { users: UserRow[] }) {
         ))}
       </div>
 
+      {/* Desktop */}
       <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
@@ -75,18 +85,27 @@ export function UserTable({ users }: { users: UserRow[] }) {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Name
                 </th>
+
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Email
                 </th>
+
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Role
                 </th>
+
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Department
+                </th>
+
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Job Title
                 </th>
+
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Status
                 </th>
+
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">
                   Action
                 </th>
@@ -99,15 +118,23 @@ export function UserTable({ users }: { users: UserRow[] }) {
                   <td className="px-4 py-4 text-sm font-medium text-slate-900">
                     {user.full_name}
                   </td>
+
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {user.email ?? "-"}
                   </td>
+
                   <td className="px-4 py-4 text-sm capitalize text-slate-600">
                     {user.role}
                   </td>
+
+                  <td className="px-4 py-4 text-sm capitalize text-slate-600">
+                    {user.department ?? "-"}
+                  </td>
+
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {user.job_title ?? "-"}
                   </td>
+
                   <td className="px-4 py-4 text-sm">
                     {user.is_active ? (
                       <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
@@ -119,6 +146,7 @@ export function UserTable({ users }: { users: UserRow[] }) {
                       </span>
                     )}
                   </td>
+
                   <td className="px-4 py-4 text-right">
                     <Link
                       href={`/users/${user.id}`}

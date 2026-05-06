@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
 import { TaskTable } from "@/components/tasks/task-table";
 import { Button } from "@/components/ui/button";
 
 export default async function TasksPage() {
+  await requireModule("tasks");
   const profile = await requireProfile();
   const supabase = await createClient();
 

@@ -10,11 +10,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
       
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
-        <Sidebar role={profile.role} />
+        <Sidebar 
+          role={profile.role} 
+          allowedModules={profile.allowed_modules
+
+          }/>
       </div>
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <Header fullName={profile.full_name} role={profile.role} />
+        <Header 
+          fullName={profile.full_name} 
+          role={profile.role} 
+          allowedModules={profile.allowed_modules}/>
 
         <main className="flex-1 p-3 sm:p-4 lg:p-6">
           {children}

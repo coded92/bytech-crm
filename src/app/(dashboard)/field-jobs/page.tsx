@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
 import { FieldJobTable } from "@/components/field-jobs/field-job-table";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ type FieldJobRow = {
 };
 
 export default async function FieldJobsPage() {
+  await requireModule("field-jobs");
   const profile = await requireProfile();
   const supabase = await createClient();
 

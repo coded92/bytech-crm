@@ -11,6 +11,7 @@ type ReportRow = {
   submitted_at: string;
   staff?: {
     full_name: string | null;
+    job_title?: string | null;
   } | null;
 };
 
@@ -25,21 +26,25 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
 
   return (
     <>
+      {/* Mobile */}
       <div className="space-y-4 sm:hidden">
         {reports.map((report) => (
           <div
             key={report.id}
             className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  {report.staff?.full_name ?? "-"}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {formatDate(report.report_date)}
-                </p>
-              </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                {report.staff?.full_name ?? "-"}
+              </p>
+
+              <p className="text-xs text-blue-600 mt-1">
+                {report.staff?.job_title ?? "No title assigned"}
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {formatDate(report.report_date)}
+              </p>
             </div>
 
             <div className="mt-4 text-sm text-slate-600">
@@ -53,15 +58,15 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
               <p>Submitted: {formatDateTime(report.submitted_at)}</p>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex gap-4">
               <Link
                 href={`/reports/${report.id}`}
                 className="text-sm font-medium text-slate-900 underline underline-offset-4"
               >
-                View Report
+                View
               </Link>
 
-               <Link
+              <Link
                 href={`/reports/${report.id}/edit`}
                 className="text-sm font-medium text-slate-900 underline underline-offset-4"
               >
@@ -72,6 +77,7 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
         ))}
       </div>
 
+      {/* Desktop */}
       <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
@@ -80,18 +86,27 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Report Date
                 </th>
+
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Staff
                 </th>
+
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Department
+                </th>
+
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Summary
                 </th>
+
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Metrics
                 </th>
+
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Submitted
                 </th>
+
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Action
                 </th>
@@ -104,20 +119,29 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
                   <td className="px-4 py-4 text-sm text-slate-900">
                     {formatDate(report.report_date)}
                   </td>
+
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {report.staff?.full_name ?? "-"}
                   </td>
+
+                  <td className="px-4 py-4 text-sm text-blue-600 font-medium">
+                    {report.staff?.job_title ?? "-"}
+                  </td>
+
                   <td className="px-4 py-4 text-sm text-slate-600">
                     <div className="max-w-md truncate">{report.summary}</div>
                   </td>
+
                   <td className="px-4 py-4 text-xs text-slate-600">
                     <div>Tasks: {report.tasks_completed_count}</div>
                     <div>Leads: {report.leads_contacted_count}</div>
                     <div>Support: {report.customers_supported_count}</div>
                   </td>
+
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {formatDateTime(report.submitted_at)}
                   </td>
+
                   <td className="px-4 py-4 text-right">
                     <Link
                       href={`/reports/${report.id}`}

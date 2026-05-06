@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MODULE_PRESETS } from "./module-presets";
 
 const AVAILABLE_MODULES = [
   { key: "dashboard", label: "Dashboard" },
@@ -21,7 +22,7 @@ const AVAILABLE_MODULES = [
   { key: "invoices", label: "Invoices" },
   { key: "payments", label: "Payments" },
   { key: "tasks", label: "Tasks" },
-  { key: "reports", label: "Reports" },
+  { key: "reports", label: "Daily Reports" },
   { key: "support", label: "Support" },
   { key: "deployments", label: "Deployments" },
   { key: "assets", label: "Assets" },
@@ -39,6 +40,19 @@ const AVAILABLE_MODULES = [
 export function UserForm() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+
+  function applyPreset(name: keyof typeof MODULE_PRESETS) {
+  setSelectedModules([...MODULE_PRESETS[name]]);
+}
+
+  function toggleModule(module: string) {
+    setSelectedModules((prev) =>
+      prev.includes(module)
+        ? prev.filter((m) => m !== module)
+        : [...prev, module]
+    );
+  }
 
   return (
     <Card>
@@ -65,6 +79,7 @@ export function UserForm() {
           className="space-y-8"
         >
           <fieldset disabled={isPending} className="space-y-8">
+            {/* DETAILS */}
             <section className="space-y-4">
               <h3 className="text-base font-semibold text-slate-900">
                 Employee Details
@@ -94,6 +109,26 @@ export function UserForm() {
                 <div className="space-y-2">
                   <Label htmlFor="job_title">Job Title</Label>
                   <Input id="job_title" name="job_title" />
+                </div>
+
+                {/* NEW */}
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department*</Label>
+                  <select
+                    id="department"
+                    name="department"
+                    required
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">Select department</option>
+                    <option value="sales">Sales</option>
+                    <option value="operations">Operations</option>
+                    <option value="support">Support</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="finance">Finance</option>
+                    <option value="hr">HR</option>
+                  </select>
                 </div>
 
                 <div className="space-y-2">
@@ -128,6 +163,7 @@ export function UserForm() {
               </div>
             </section>
 
+            {/* LOGIN */}
             <section className="space-y-4">
               <h3 className="text-base font-semibold text-slate-900">
                 Employee Login Info
@@ -171,13 +207,18 @@ export function UserForm() {
               </div>
             </section>
 
+            {/* MODULES */}
             <section className="space-y-4">
               <h3 className="text-base font-semibold text-slate-900">
                 Employee Permission and Access
               </h3>
-              <p className="text-sm text-slate-500">
-                Check the boxes below to grant access to modules.
-              </p>
+
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" onClick={() => applyPreset("sales")}>Sales Preset</Button>
+                <Button type="button" variant="outline" onClick={() => applyPreset("support")}>Support Preset</Button>
+                <Button type="button" variant="outline" onClick={() => applyPreset("engineering")}>Engineering Preset</Button>
+                <Button type="button" variant="outline" onClick={() => applyPreset("admin")}>Admin Preset</Button>
+              </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {AVAILABLE_MODULES.map((module) => (
@@ -189,19 +230,23 @@ export function UserForm() {
                       type="checkbox"
                       name="allowed_modules"
                       value={module.key}
+                      checked={selectedModules.includes(module.key)}
+                      onChange={() => toggleModule(module.key)}
                       className="h-4 w-4 rounded border-slate-300"
                     />
-                    <span className="text-sm text-slate-700">{module.label}</span>
+                    <span className="text-sm text-slate-700">
+                      {module.label}
+                    </span>
                   </label>
                 ))}
               </div>
             </section>
 
-            {error ? (
+            {error && (
               <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {error}
               </div>
-            ) : null}
+            )}
 
             <Button type="submit" disabled={isPending}>
               {isPending ? "Saving..." : "Create Employee"}

@@ -18,6 +18,15 @@ export interface Database {
           email: string | null;
           phone: string | null;
           role: "admin" | "staff";
+          department:
+          | "sales"
+          | "operations"
+          | "support"
+          | "engineering"
+          | "inventory"
+          | "finance"
+          | "hr"
+          | null;
           job_title: string | null;
           is_active: boolean;
           avatar_url: string | null;
@@ -41,6 +50,15 @@ export interface Database {
           email?: string | null;
           phone?: string | null;
           role: "admin" | "staff";
+          department?:
+          | "sales"
+          | "operations"
+          | "support"
+          | "engineering"
+          | "inventory"
+          | "finance"
+          | "hr"
+          | null;
           job_title?: string | null;
           is_active?: boolean;
           avatar_url?: string | null;
@@ -61,6 +79,15 @@ export interface Database {
           email?: string | null;
           phone?: string | null;
           role?: "admin" | "staff";
+          department?:
+          | "sales"
+          | "operations"
+          | "support"
+          | "engineering"
+          | "inventory"
+          | "finance"
+          | "hr"
+          | null;
           job_title?: string | null;
           is_active?: boolean;
           avatar_url?: string | null;
@@ -1368,6 +1395,256 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["file_attachments"]["Insert"]>;
       };
 
+            projects: {
+        Row: {
+          id: string;
+          project_code: string;
+          project_name: string;
+          customer_id: string | null;
+          lead_id: string | null;
+          quotation_id: string | null;
+          invoice_id: string | null;
+          receipt_id: string | null;
+          project_type:
+            | "website_development"
+            | "pos_deployment"
+            | "crm_setup"
+            | "digital_marketing"
+            | "networking_infrastructure"
+            | "maintenance"
+            | "custom_software"
+            | "other";
+          description: string | null;
+          project_manager_id: string | null;
+          start_date: string | null;
+          deadline: string | null;
+          priority: "low" | "medium" | "high" | "urgent";
+          status:
+            | "proposal"
+            | "approved"
+            | "paid"
+            | "planning"
+            | "in_progress"
+            | "review"
+            | "completed"
+            | "maintenance"
+            | "on_hold"
+            | "cancelled";
+          quotation_amount: number;
+          amount_paid: number;
+          outstanding_balance: number;
+          payment_status: "unpaid" | "part_payment" | "paid_in_full";
+          invoice_number: string | null;
+          receipt_number: string | null;
+          recurring_revenue: boolean;
+          annual_renewal_amount: number;
+          next_renewal_date: string | null;
+          project_cost_estimate: number;
+          profit_estimate: number;
+          progress: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_code?: string;
+          project_name: string;
+          customer_id?: string | null;
+          lead_id?: string | null;
+          quotation_id?: string | null;
+          invoice_id?: string | null;
+          receipt_id?: string | null;
+          project_type:
+            | "website_development"
+            | "pos_deployment"
+            | "crm_setup"
+            | "digital_marketing"
+            | "networking_infrastructure"
+            | "maintenance"
+            | "custom_software"
+            | "other";
+          description?: string | null;
+          project_manager_id?: string | null;
+          start_date?: string | null;
+          deadline?: string | null;
+          priority?: "low" | "medium" | "high" | "urgent";
+          status?:
+            | "proposal"
+            | "approved"
+            | "paid"
+            | "planning"
+            | "in_progress"
+            | "review"
+            | "completed"
+            | "maintenance"
+            | "on_hold"
+            | "cancelled";
+          quotation_amount?: number;
+          amount_paid?: number;
+          payment_status?: "unpaid" | "part_payment" | "paid_in_full";
+          invoice_number?: string | null;
+          receipt_number?: string | null;
+          recurring_revenue?: boolean;
+          annual_renewal_amount?: number;
+          next_renewal_date?: string | null;
+          project_cost_estimate?: number;
+          progress?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["projects"]["Insert"]>;
+      };
+
+      project_members: {
+        Row: {
+          id: string;
+          project_id: string;
+          staff_id: string;
+          role: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          staff_id: string;
+          role?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["project_members"]["Insert"]>;
+      };
+
+      project_tasks: {
+        Row: {
+          id: string;
+          project_id: string;
+          title: string;
+          description: string | null;
+          assigned_to: string | null;
+          status: "todo" | "in_progress" | "review" | "completed" | "blocked" | "cancelled";
+          priority: "low" | "medium" | "high" | "urgent";
+          due_date: string | null;
+          completed_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          title: string;
+          description?: string | null;
+          assigned_to?: string | null;
+          status?: "todo" | "in_progress" | "review" | "completed" | "blocked" | "cancelled";
+          priority?: "low" | "medium" | "high" | "urgent";
+          due_date?: string | null;
+          completed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["project_tasks"]["Insert"]>;
+      };
+
+      project_task_checklists: {
+        Row: {
+          id: string;
+          task_id: string;
+          title: string;
+          is_done: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          title: string;
+          is_done?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["project_task_checklists"]["Insert"]>;
+      };
+
+      project_task_comments: {
+        Row: {
+          id: string;
+          task_id: string;
+          comment: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          comment: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["project_task_comments"]["Insert"]>;
+      };
+
+      project_timeline: {
+        Row: {
+          id: string;
+          project_id: string;
+          timeline_type: string;
+          title: string;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          timeline_type?: string;
+          title: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["project_timeline"]["Insert"]>;
+      };
+
+      project_templates: {
+        Row: {
+          id: string;
+          name: string;
+          project_type:
+            | "website_development"
+            | "pos_deployment"
+            | "crm_setup"
+            | "digital_marketing"
+            | "networking_infrastructure"
+            | "maintenance"
+            | "custom_software"
+            | "other";
+          description: string | null;
+          default_tasks: Json;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          project_type:
+            | "website_development"
+            | "pos_deployment"
+            | "crm_setup"
+            | "digital_marketing"
+            | "networking_infrastructure"
+            | "maintenance"
+            | "custom_software"
+            | "other";
+          description?: string | null;
+          default_tasks?: Json;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["project_templates"]["Insert"]>;
+      };
+
       daily_reports: {
         Row: {
           id: string;
@@ -1432,3 +1709,24 @@ export type EmployeeFileInsert =
   Database["public"]["Tables"]["employee_files"]["Insert"];
 export type EmployeeFileUpdate =
   Database["public"]["Tables"]["employee_files"]["Update"];
+export type Project = Database["public"]["Tables"]["projects"]["Row"];
+export type ProjectInsert = Database["public"]["Tables"]["projects"]["Insert"];
+export type ProjectUpdate = Database["public"]["Tables"]["projects"]["Update"];
+
+export type ProjectMember = Database["public"]["Tables"]["project_members"]["Row"];
+export type ProjectMemberInsert =
+  Database["public"]["Tables"]["project_members"]["Insert"];
+
+export type ProjectTask = Database["public"]["Tables"]["project_tasks"]["Row"];
+export type ProjectTaskInsert =
+  Database["public"]["Tables"]["project_tasks"]["Insert"];
+export type ProjectTaskUpdate =
+  Database["public"]["Tables"]["project_tasks"]["Update"];
+
+export type ProjectTimeline =
+  Database["public"]["Tables"]["project_timeline"]["Row"];
+export type ProjectTimelineInsert =
+  Database["public"]["Tables"]["project_timeline"]["Insert"];
+
+export type ProjectTemplate =
+  Database["public"]["Tables"]["project_templates"]["Row"];

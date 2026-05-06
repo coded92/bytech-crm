@@ -1,10 +1,26 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type ReportDetailsPageProps = {
   params: Promise<{ id: string }>;
+};
+
+type Department =
+  | "sales"
+  | "operations"
+  | "support"
+  | "engineering"
+  | "inventory"
+  | "finance"
+  | "hr";
+
+type ProfileWithDepartment = {
+  id: string;
+  role: "admin" | "staff";
+  department: Department | null;
 };
 
 type ReportRow = {
@@ -21,21 +37,26 @@ type ReportRow = {
   staff?: {
     full_name: string | null;
     email: string | null;
+    department: Department | null;
   } | null;
 };
 
 export default async function ReportDetailsPage({
   params,
 }: ReportDetailsPageProps) {
+  const profile = (await requireProfile()) as ProfileWithDepartment;
   const { id } = await params;
-
   const supabase = await createClient();
 
   const { data: reportData } = await supabase
     .from("daily_reports")
     .select(`
       *,
-      staff:profiles!daily_reports_staff_id_fkey(full_name, email)
+      staff:profiles!daily_reports_staff_id_fkey(
+        full_name,
+        email,
+        department
+      )
     `)
     .eq("id", id)
     .single();
@@ -43,6 +64,22 @@ export default async function ReportDetailsPage({
   const report = reportData as ReportRow | null;
 
   if (!report) {
+    notFound();
+  }
+
+  if (
+    profile.role !== "admin" &&
+    profile.department &&
+    report.staff?.department !== profile.department
+  ) {
+    notFound();
+  }
+
+  if (
+    profile.role !== "admin" &&
+    !profile.department &&
+    profile.id !== report.staff_id
+  ) {
     notFound();
   }
 
@@ -104,6 +141,10 @@ export default async function ReportDetailsPage({
               <InfoItem label="Staff" value={report.staff?.full_name ?? "-"} />
               <InfoItem label="Email" value={report.staff?.email ?? "-"} />
               <InfoItem
+                label="Department"
+                value={report.staff?.department?.replaceAll("_", " ") ?? "-"}
+              />
+              <InfoItem
                 label="Report Date"
                 value={formatDate(report.report_date)}
               />
@@ -137,7 +178,7 @@ function InfoItem({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className="mt-1 text-sm text-slate-900">{value}</p>
+      <p className="mt-1 text-sm capitalize text-slate-900">{value}</p>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -47,6 +48,7 @@ type AssetRow = {
 };
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
+  await requireModule("search");
   await requireProfile();
   const { q } = await searchParams;
   const supabase = await createClient();

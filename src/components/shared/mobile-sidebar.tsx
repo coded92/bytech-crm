@@ -2,28 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Building2,
-  CheckSquare,
-  ClipboardList,
-  CreditCard,
-  Bell,
-  Menu,
-  X,
-} from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Wallet } from "lucide-react";
-import { Headset } from "lucide-react";
-import { MonitorSmartphone } from "lucide-react";
-import { Package } from "lucide-react";
-import { Settings } from "lucide-react";
-import { ShieldCheck } from "lucide-react";
-import { Wrench } from "lucide-react";
-import { Boxes } from "lucide-react";
-import { Truck, ShoppingCart } from "lucide-react";
 import {
   Sheet,
   SheetClose,
@@ -33,44 +13,26 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { getVisibleNavItems } from "@/components/shared/nav-items";
 
 type MobileSidebarProps = {
   role: "admin" | "staff";
+  allowedModules: string[];
 };
 
-export function MobileSidebar({ role }: MobileSidebarProps) {
+export function MobileSidebar({
+  role,
+  allowedModules,
+}: MobileSidebarProps) {
   const pathname = usePathname();
 
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/leads", label: "Leads", icon: Users },
-    { href: "/quotations", label: "Quotations", icon: FileText },
-    { href: "/customers", label: "Customers", icon: Building2 },
-    { href: "/tasks", label: "Tasks", icon: CheckSquare },
-    { href: "/reports", label: "Daily Reports", icon: ClipboardList },
-    { href: "/payments/invoices", label: "Invoices", icon: CreditCard },
-    { href: "/expenses", label: "Expenses", icon: Wallet },
-    { href: "/notifications", label: "Notifications", icon: Bell },
-    { href: "/deployments", label: "Deployments", icon: MonitorSmartphone },
-    { href: "/assets", label: "Assets", icon: Package },
-    { href: "/field-jobs", label: "Field Jobs", icon: Wrench },
-    { href: "/field-jobs/daily-report", label: "Engineer Daily", icon: Wrench },
-    { href: "/inventory", label: "Inventory", icon: Boxes },
-    { href: "/support", label: "Support", icon: Headset },
-    { href: "/suppliers", label: "Suppliers", icon: Truck },
-    { href: "/restocking", label: "Restocking", icon: ShoppingCart },
-    { href: "/suppliers/payables", label: "Supplier Payables", icon: Truck },
-    ...(role === "admin"
-      ? [
-          { href: "/users", label: "Users", icon: Users },
-          { href: "/settings/company", label: "Settings", icon: Settings },
-          { href: "/audit-logs", label: "Audit Logs", icon: ShieldCheck },
-        ]
-      : []),
-  ];
+  const navItems = getVisibleNavItems({
+    role,
+    allowedModules,
+  });
 
   return (
-    <div className="lg:hidden">  {/* FIXED HERE */}
+    <div className="lg:hidden">
       <Sheet>
         <SheetTrigger asChild>
           <Button
@@ -123,7 +85,8 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
-                  pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
 
                 return (
                   <SheetClose asChild key={item.href}>

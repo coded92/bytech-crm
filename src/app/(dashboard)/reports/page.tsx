@@ -1,44 +1,57 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
 import { ReportTable } from "@/components/reports/report-table";
 import { Button } from "@/components/ui/button";
 
+type Department =
+  | "sales"
+  | "operations"
+  | "support"
+  | "engineering"
+  | "inventory"
+  | "finance"
+  | "hr";
+
+type ProfileWithDepartment = {
+  id: string;
+  role: "admin" | "staff";
+  department: Department | null;
+};
+
 export default async function ReportsPage() {
-  const profile = await requireProfile();
+  await requireModule("reports");
+
+  const profile = (await requireProfile()) as ProfileWithDepartment;
   const supabase = await createClient();
 
-  const query =
-    profile.role === "admin"
-      ? supabase
-          .from("daily_reports")
-          .select(`
-            id,
-            report_date,
-            summary,
-            tasks_completed_count,
-            leads_contacted_count,
-            customers_supported_count,
-            submitted_at,
-            staff:profiles!daily_reports_staff_id_fkey(full_name)
-          `)
-          .order("report_date", { ascending: false })
-          .order("submitted_at", { ascending: false })
-      : supabase
-          .from("daily_reports")
-          .select(`
-            id,
-            report_date,
-            summary,
-            tasks_completed_count,
-            leads_contacted_count,
-            customers_supported_count,
-            submitted_at,
-            staff:profiles!daily_reports_staff_id_fkey(full_name)
-          `)
-          .eq("staff_id", profile.id)
-          .order("report_date", { ascending: false })
-          .order("submitted_at", { ascending: false });
+  let query = supabase
+    .from("daily_reports")
+    .select(`
+      id,
+      report_date,
+      summary,
+      tasks_completed_count,
+      leads_contacted_count,
+      customers_supported_count,
+      submitted_at,
+      staff:profiles!daily_reports_staff_id_fkey(
+        id,
+        full_name,
+        department
+      )
+    `)
+    .order("report_date", { ascending: false })
+    .order("submitted_at", { ascending: false });
+
+  if (profile.role !== "admin" && profile.department) {
+    query = query.eq("staff.department", profile.department);
+  }
+
+  if (profile.role !== "admin" && !profile.department) {
+    query = query.eq("staff_id", profile.id);
+  }
 
   const { data: reports, error } = await query;
 
@@ -49,10 +62,13 @@ export default async function ReportsPage() {
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             Daily Reports
           </h2>
+
           <p className="text-slate-600">
             {profile.role === "admin"
-              ? "Review daily submissions from all staff."
-              : "Track and review your submitted reports."}
+              ? "Review daily submissions from all departments."
+              : profile.department
+                ? `Viewing ${profile.department.replaceAll("_", " ")} department reports.`
+                : "Viewing your submitted reports."}
           </p>
         </div>
 

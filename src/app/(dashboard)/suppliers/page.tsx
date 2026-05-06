@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { Button } from "@/components/ui/button";
 
 type SupplierRow = {
@@ -12,6 +13,7 @@ type SupplierRow = {
 };
 
 export default async function SuppliersPage() {
+  await requireModule("suppliers");
   const supabase = await createClient();
 
   const { data, error } = await supabase

@@ -23,6 +23,20 @@ type DailyReportData = {
   customers_supported_count: number;
   blockers: string | null;
   next_day_plan: string | null;
+  staff_id?: string;
+  submitted_at?: string;
+  created_at?: string;
+  staff?: {
+    department:
+      | "sales"
+      | "operations"
+      | "support"
+      | "engineering"
+      | "inventory"
+      | "finance"
+      | "hr"
+      | null;
+  } | null;
 };
 
 export function DailyReportEditForm({

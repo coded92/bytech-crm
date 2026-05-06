@@ -24,6 +24,7 @@ type UserRow = {
   last_name: string | null;
   email: string | null;
   role: "admin" | "staff";
+  department: string | null;
   job_title: string | null;
   phone: string | null;
   is_active: boolean;
@@ -50,7 +51,7 @@ export default async function UserDetailsPage({
   const { data: userData, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, first_name, last_name, email, role, job_title, phone, is_active, address, city, state, hire_date, birthday, employee_number, username, force_password_change, allowed_modules, avatar_url, created_at"
+      "id, full_name, first_name, last_name, email, role, department, job_title, phone, is_active, address, city, state, hire_date, birthday, employee_number, username, force_password_change, allowed_modules, avatar_url, created_at"
     )
     .eq("id", id)
     .maybeSingle();
@@ -124,6 +125,7 @@ export default async function UserDetailsPage({
           <InfoItem label="Username" value={user.username} />
           <InfoItem label="Phone" value={user.phone} />
           <InfoItem label="Role" value={user.role} />
+          <InfoItem label="Department" value={user.department} />
           <InfoItem label="Job Title" value={user.job_title} />
           <InfoItem label="Employee Number" value={user.employee_number} />
           <InfoItem label="Status" value={user.is_active ? "Active" : "Inactive"} />

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { QuotationTable } from "@/components/quotations/quotation-table";
 import { Button } from "@/components/ui/button";
 
 export default async function QuotationsPage() {
+  await requireModule("quotations");
   const supabase = await createClient();
 
   const { data: quotations, error } = await supabase

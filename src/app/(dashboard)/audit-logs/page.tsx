@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { formatDateTime } from "@/lib/utils/format-date";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -25,6 +26,7 @@ type AuditLogRow = {
 export default async function AuditLogsPage({
   searchParams,
 }: AuditLogsPageProps) {
+  await requireModule("audit-logs")
   await requireAdmin();
   const { entity_type, action } = await searchParams;
   const supabase = await createClient();

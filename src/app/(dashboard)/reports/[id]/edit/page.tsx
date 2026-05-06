@@ -7,6 +7,21 @@ type EditDailyReportPageProps = {
   params: Promise<{ id: string }>;
 };
 
+type Department =
+  | "sales"
+  | "operations"
+  | "support"
+  | "engineering"
+  | "inventory"
+  | "finance"
+  | "hr";
+
+type ProfileWithDepartment = {
+  id: string;
+  role: "admin" | "staff";
+  department: Department | null;
+};
+
 type DailyReportRow = {
   id: string;
   staff_id: string;
@@ -19,20 +34,34 @@ type DailyReportRow = {
   next_day_plan: string | null;
   submitted_at: string;
   created_at: string;
+  staff?: {
+    department: Department | null;
+  } | null;
 };
 
 export default async function EditDailyReportPage({
   params,
 }: EditDailyReportPageProps) {
-  const profile = await requireProfile();
+  const profile = (await requireProfile()) as ProfileWithDepartment;
   const { id } = await params;
   const supabase = await createClient();
 
   const { data: report } = await supabase
     .from("daily_reports")
-    .select(
-      "id, staff_id, report_date, summary, tasks_completed_count, leads_contacted_count, customers_supported_count, blockers, next_day_plan, submitted_at, created_at"
-    )
+    .select(`
+      id,
+      staff_id,
+      report_date,
+      summary,
+      tasks_completed_count,
+      leads_contacted_count,
+      customers_supported_count,
+      blockers,
+      next_day_plan,
+      submitted_at,
+      created_at,
+      staff:profiles!daily_reports_staff_id_fkey(department)
+    `)
     .eq("id", id)
     .single();
 
@@ -42,7 +71,19 @@ export default async function EditDailyReportPage({
 
   const typedReport = report as DailyReportRow;
 
-  if (profile.role !== "admin" && profile.id !== typedReport.staff_id) {
+  if (
+    profile.role !== "admin" &&
+    profile.department &&
+    typedReport.staff?.department !== profile.department
+  ) {
+    notFound();
+  }
+
+  if (
+    profile.role !== "admin" &&
+    !profile.department &&
+    profile.id !== typedReport.staff_id
+  ) {
     notFound();
   }
 

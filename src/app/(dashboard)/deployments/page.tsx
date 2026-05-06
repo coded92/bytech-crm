@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/require-profile";
+import { requireModule } from "@/lib/auth/require-module";
 import { DeploymentTable } from "@/components/deployments/deployment-table";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +18,7 @@ type DeploymentRow = {
 };
 
 export default async function DeploymentsPage() {
+  await requireModule("deployments");
   const profile = await requireProfile();
   const supabase = await createClient();
 

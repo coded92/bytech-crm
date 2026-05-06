@@ -17,7 +17,7 @@ export default async function EditUserPage({
   const { data: user } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, first_name, last_name, email, role, job_title, phone, is_active, address, city, state, hire_date, birthday, employee_number, username, force_password_change, allowed_modules"
+      "id, full_name, first_name, last_name, email, role, department, job_title, phone, is_active, address, city, state, hire_date, birthday, employee_number, username, force_password_change, allowed_modules"
     )
     .eq("id", id)
     .single();

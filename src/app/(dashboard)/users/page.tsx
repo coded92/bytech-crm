@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { UserTable } from "@/components/users/user-table";
 import { Button } from "@/components/ui/button";
 
 export default async function UsersPage() {
+  await requireModule("users");
   await requireAdmin();
+
   const supabase = await createClient();
 
   const { data: users, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, job_title, phone, is_active, created_at")
+    .select(
+      "id, full_name, email, role, department, job_title, phone, is_active, created_at"
+    )
     .order("created_at", { ascending: false });
 
   return (

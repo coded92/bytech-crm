@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { SupportTable } from "@/components/support/support-table";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +21,7 @@ type SupportRow = {
 };
 
 export default async function SupportPage() {
+  await requireModule("support");
   const supabase = await createClient();
 
   const { data, error } = await supabase

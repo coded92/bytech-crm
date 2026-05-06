@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/require-profile";
+import { requireModule } from "@/lib/auth/require-module";
 import { ExpenseTable } from "@/components/expenses/expense-table";
 import { Button } from "@/components/ui/button";
 
 export default async function ExpensesPage() {
+  await requireModule("expenses");
   const profile = await requireProfile();
   const supabase = await createClient();
 

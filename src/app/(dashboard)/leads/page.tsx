@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { LeadTable } from "@/components/leads/lead-table";
 import { Button } from "@/components/ui/button";
 
 export default async function LeadsPage() {
+  await requireModule("leads");
   const supabase = await createClient();
 
   const { data: leads, error } = await supabase

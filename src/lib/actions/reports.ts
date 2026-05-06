@@ -5,9 +5,22 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createDailyReportSchema } from "@/lib/validations/report";
 
-type ActionResponse =
-  | { success: true }
-  | { error: string };
+type ActionResponse = { success: true } | { error: string };
+
+type Department =
+  | "sales"
+  | "operations"
+  | "support"
+  | "engineering"
+  | "inventory"
+  | "finance"
+  | "hr";
+
+type ProfileRow = {
+  id: string;
+  role: "admin" | "staff";
+  department: Department | null;
+};
 
 export async function createDailyReportAction(
   formData: FormData
@@ -73,20 +86,22 @@ export async function createDailyReportAction(
 
   await (supabase as any).from("activity_logs").insert({
     actor_id: user.id,
-    entity_type: "report",
+    entity_type: "daily_report",
     entity_id: report.id,
     action: "created",
     description: `Submitted daily report for ${values.report_date}`,
   });
 
   revalidatePath("/reports");
+  revalidatePath("/dashboard");
+
   redirect(`/reports/${report.id}`);
 }
 
 export async function updateDailyReportAction(
   reportId: string,
   formData: FormData
-): Promise<{ success: true } | { error: string } | never> {
+): Promise<ActionResponse | never> {
   const supabase = await createClient();
 
   const {
@@ -115,37 +130,52 @@ export async function updateDailyReportAction(
 
   const values = parsed.data;
 
-  const existingReportResult = await (supabase as any)
-    .from("daily_reports")
-    .select("staff_id")
-    .eq("id", reportId)
-    .single();
-
-  const existingReport = existingReportResult.data as { staff_id: string } | null;
-  const existingError = existingReportResult.error as { message?: string } | null;
-
-  if (existingError || !existingReport) {
-    return { error: existingError?.message ?? "Report not found" };
-  }
-
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
-    .select("role")
+    .select("id, role, department")
     .eq("id", user.id)
     .single();
 
-  if (profileError) {
-    return { error: profileError.message };
+  if (profileError || !profileData) {
+    return { error: profileError?.message ?? "Profile not found" };
   }
 
-  const profile = profileData as { role: "admin" | "staff" } | null;
+  const profile = profileData as ProfileRow;
 
-  if (!profile) {
-    return { error: "Profile not found" };
+  const existingReportResult = await (supabase as any)
+    .from("daily_reports")
+    .select(`
+      id,
+      staff_id,
+      staff:profiles!daily_reports_staff_id_fkey(department)
+    `)
+    .eq("id", reportId)
+    .single();
+
+  const existingReport = existingReportResult.data as
+    | {
+        id: string;
+        staff_id: string;
+        staff?: {
+          department: Department | null;
+        } | null;
+      }
+    | null;
+
+  if (existingReportResult.error || !existingReport) {
+    return {
+      error: existingReportResult.error?.message ?? "Report not found",
+    };
   }
 
-  if (profile.role !== "admin" && existingReport.staff_id !== user.id) {
-    return { error: "You can only edit your own reports" };
+  const canEdit =
+    profile.role === "admin" ||
+    existingReport.staff_id === user.id ||
+    (profile.department &&
+      existingReport.staff?.department === profile.department);
+
+  if (!canEdit) {
+    return { error: "You do not have permission to edit this report." };
   }
 
   const { error } = await (supabase as any)

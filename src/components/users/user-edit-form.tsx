@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MODULE_PRESETS } from "./module-presets";
 
 const AVAILABLE_MODULES = [
   { key: "dashboard", label: "Dashboard" },
@@ -21,7 +22,7 @@ const AVAILABLE_MODULES = [
   { key: "invoices", label: "Invoices" },
   { key: "payments", label: "Payments" },
   { key: "tasks", label: "Tasks" },
-  { key: "reports", label: "Reports" },
+  { key: "reports", label: "Daily Reports" },
   { key: "support", label: "Support" },
   { key: "deployments", label: "Deployments" },
   { key: "assets", label: "Assets" },
@@ -45,6 +46,15 @@ type UserEditFormProps = {
     email: string | null;
     phone: string | null;
     role: "admin" | "staff";
+    department:
+      | "sales"
+      | "operations"
+      | "support"
+      | "engineering"
+      | "inventory"
+      | "finance"
+      | "hr"
+      | null;
     job_title: string | null;
     is_active: boolean;
     address: string | null;
@@ -64,6 +74,21 @@ export function UserEditForm({ user }: UserEditFormProps) {
   const [isResetPending, startResetTransition] = useTransition();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [selectedModules, setSelectedModules] = useState<string[]>(
+    user.allowed_modules ?? []
+  );
+
+  function applyPreset(name: keyof typeof MODULE_PRESETS) {
+    setSelectedModules([...MODULE_PRESETS[name]]);
+  }
+
+  function toggleModule(module: string) {
+    setSelectedModules((prev) =>
+      prev.includes(module)
+        ? prev.filter((m) => m !== module)
+        : [...prev, module]
+    );
+  }
 
   return (
     <Card>
@@ -132,11 +157,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    defaultValue={user.phone ?? ""}
-                  />
+                  <Input id="phone" name="phone" defaultValue={user.phone ?? ""} />
                 </div>
 
                 <div className="space-y-2">
@@ -146,6 +167,26 @@ export function UserEditForm({ user }: UserEditFormProps) {
                     name="job_title"
                     defaultValue={user.job_title ?? ""}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department*</Label>
+                  <select
+                    id="department"
+                    name="department"
+                    defaultValue={user.department ?? ""}
+                    required
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">Select department</option>
+                    <option value="sales">Sales</option>
+                    <option value="operations">Operations</option>
+                    <option value="support">Support</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="finance">Finance</option>
+                    <option value="hr">HR</option>
+                  </select>
                 </div>
 
                 <div className="space-y-2">
@@ -188,20 +229,12 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    defaultValue={user.city ?? ""}
-                  />
+                  <Input id="city" name="city" defaultValue={user.city ?? ""} />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    name="state"
-                    defaultValue={user.state ?? ""}
-                  />
+                  <Input id="state" name="state" defaultValue={user.state ?? ""} />
                 </div>
               </div>
             </section>
@@ -267,9 +300,21 @@ export function UserEditForm({ user }: UserEditFormProps) {
               <h3 className="text-base font-semibold text-slate-900">
                 Employee Permission and Access
               </h3>
-              <p className="text-sm text-slate-500">
-                Check the boxes below to grant access to modules.
-              </p>
+
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" onClick={() => applyPreset("sales")}>
+                  Sales Preset
+                </Button>
+                <Button type="button" variant="outline" onClick={() => applyPreset("support")}>
+                  Support Preset
+                </Button>
+                <Button type="button" variant="outline" onClick={() => applyPreset("engineering")}>
+                  Engineering Preset
+                </Button>
+                <Button type="button" variant="outline" onClick={() => applyPreset("admin")}>
+                  Admin Preset
+                </Button>
+              </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {AVAILABLE_MODULES.map((module) => (
@@ -281,7 +326,8 @@ export function UserEditForm({ user }: UserEditFormProps) {
                       type="checkbox"
                       name="allowed_modules"
                       value={module.key}
-                      defaultChecked={user.allowed_modules.includes(module.key)}
+                      checked={selectedModules.includes(module.key)}
+                      onChange={() => toggleModule(module.key)}
                       className="h-4 w-4 rounded border-slate-300"
                     />
                     <span className="text-sm text-slate-700">{module.label}</span>
