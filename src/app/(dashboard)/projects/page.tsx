@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { ProjectTable } from "@/components/projects/project-table";
 import { Button } from "@/components/ui/button";
 
 export default async function ProjectsPage() {
+    await requireModule("projects");
   const supabase = await createClient();
 
   const { data: projects, error } = await supabase
