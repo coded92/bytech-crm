@@ -2,15 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { postStockMovement } from "@/lib/inventory/stock-integrity";
 import { createFieldJobInventoryUsageSchema } from "@/lib/validations/field-job-inventory";
-
-type InventoryItemRow = {
-  id: string;
-  item_name: string;
-  unit_cost: number;
-  current_quantity: number;
-};
 
 export async function createFieldJobInventoryUsageAction(formData: FormData) {
   const supabase = await createClient();
@@ -38,66 +30,20 @@ export async function createFieldJobInventoryUsageAction(formData: FormData) {
 
   const values = parsed.data;
 
-  const { data: inventoryItemData, error: inventoryItemError } = await (supabase as any)
-    .from("inventory_items")
-    .select("id, item_name, unit_cost, current_quantity")
-    .eq("id", values.inventory_item_id)
-    .maybeSingle();
-
-  const inventoryItem = inventoryItemData as InventoryItemRow | null;
-
-  if (inventoryItemError || !inventoryItem) {
-    return {
-      error: inventoryItemError?.message ?? "Inventory item not found",
-    };
-  }
-
-  const { data: usageData, error: usageError } = await (supabase as any)
-    .from("field_job_inventory_usage")
-    .insert({
-      field_job_id: values.field_job_id,
-      inventory_item_id: values.inventory_item_id,
-      quantity: values.quantity,
-      unit_cost: inventoryItem.unit_cost || 0,
-      notes: values.notes || null,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
-
-  if (usageError) {
-    return { error: usageError.message };
-  }
-
-  const movementResult = await postStockMovement({
-    supabase,
-    inventoryItemId: values.inventory_item_id,
-    movementType: "stock_out",
-    quantity: values.quantity,
-    unitCost: inventoryItem.unit_cost || 0,
-    fieldJobId: values.field_job_id,
-    note: values.notes || "Issued to field job",
-    actorId: user.id,
+  // Phase 4B: field-job inventory usage is now posted through the database RPC.
+  // The RPC is the atomic boundary: it inserts the usage row, inserts one
+  // stock-out movement, lets the inventory movement trigger update stock,
+  // verifies the expected quantity, and writes the field-job activity log.
+  const { error } = await (supabase as any).rpc("issue_field_job_inventory", {
+    p_field_job_id: values.field_job_id,
+    p_inventory_item_id: values.inventory_item_id,
+    p_quantity: values.quantity,
+    p_notes: values.notes || null,
   });
 
-  if ("error" in movementResult) {
-    if (usageData?.id) {
-      await (supabase as any)
-        .from("field_job_inventory_usage")
-        .delete()
-        .eq("id", usageData.id);
-    }
-
-    return { error: movementResult.error };
+  if (error) {
+    return { error: error.message };
   }
-
-  await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
-    entity_type: "field_job",
-    entity_id: values.field_job_id,
-    action: "inventory_issued",
-    description: `Issued inventory item: ${inventoryItem.item_name}`,
-  });
 
   revalidatePath(`/field-jobs/${values.field_job_id}`);
   revalidatePath(`/inventory/${values.inventory_item_id}`);
