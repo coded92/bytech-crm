@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { updateQuotationAction } from "@/lib/actions/quotations";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +73,7 @@ export function QuotationEditForm({
 }: QuotationEditFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const isSubmittingRef = useRef(false);
 
   const [leadId, setLeadId] = useState(quotation.lead_id ?? "");
   const [customerId, setCustomerId] = useState(quotation.customer_id ?? "");
@@ -175,12 +176,18 @@ export function QuotationEditForm({
       <CardContent>
         <form
           action={(formData) => {
+            if (isSubmittingRef.current) {
+              return;
+            }
+
+            isSubmittingRef.current = true;
             setError("");
 
             startTransition(async () => {
               const result = await updateQuotationAction(quotation.id, formData);
 
               if ("error" in result) {
+                isSubmittingRef.current = false;
                 setError(result.error);
               }
             });

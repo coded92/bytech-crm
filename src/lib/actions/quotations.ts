@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requirePermission } from "@/lib/auth/require-permission";
 import {
   createQuotationSchema,
   quotationStatusSchema,
@@ -19,6 +21,15 @@ type ParsedItem = {
   unit_price: number;
 };
 
+type QuotationItemReplacementRow = {
+  quotation_id: string;
+  item_name: string;
+  description: string | null;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+};
+
 function parseQuotationItems(raw: FormDataEntryValue | null): ParsedItem[] {
   if (!raw || typeof raw !== "string") return [];
 
@@ -30,18 +41,41 @@ function parseQuotationItems(raw: FormDataEntryValue | null): ParsedItem[] {
   }
 }
 
+function normalizeOptionalText(value?: string) {
+  const trimmed = String(value ?? "").trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeQuotationItems(items: ParsedItem[]) {
+  const seen = new Set<string>();
+  const normalizedItems: ParsedItem[] = [];
+
+  for (const item of items) {
+    const normalizedItem = {
+      item_name: String(item.item_name ?? "").trim(),
+      description: normalizeOptionalText(item.description),
+      quantity: Number(item.quantity),
+      unit_price: Number(item.unit_price),
+    };
+
+    const key = JSON.stringify(normalizedItem);
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalizedItems.push(normalizedItem);
+  }
+
+  return normalizedItems;
+}
+
 export async function createQuotationAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("quotations", "create");
 
   const items = parseQuotationItems(formData.get("items"));
 
@@ -67,8 +101,9 @@ export async function createQuotationAction(
   }
 
   const values = parsed.data;
+  const quotationItemsInput = normalizeQuotationItems(values.items);
 
-  const subtotal = values.items.reduce(
+  const subtotal = quotationItemsInput.reduce(
     (sum, item) => sum + item.quantity * item.unit_price,
     0
   );
@@ -91,7 +126,7 @@ export async function createQuotationAction(
       subtotal,
       total,
       notes: values.notes || null,
-      created_by: user.id,
+      created_by: profile.id,
       status: "draft",
     })
     .select("id, lead_id")
@@ -109,7 +144,7 @@ export async function createQuotationAction(
     };
   }
 
-  const quotationItems = values.items.map((item) => ({
+  const quotationItems = quotationItemsInput.map((item) => ({
     quotation_id: quotation.id,
     item_name: item.item_name,
     description: item.description || null,
@@ -129,7 +164,7 @@ export async function createQuotationAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "quotation",
     entity_id: quotation.id,
     action: "created",
@@ -140,7 +175,7 @@ export async function createQuotationAction(
     await (supabase as any).from("lead_activities").insert({
       lead_id: quotation.lead_id,
       activity_type: "quotation_created",
-      actor_id: user.id,
+      actor_id: profile.id,
       new_value: {
         quotation_id: quotation.id,
       },
@@ -159,14 +194,7 @@ export async function updateQuotationStatusAction(
   formData: FormData
 ): Promise<ActionResponse> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("quotations", "update");
 
   const parsed = quotationStatusSchema.safeParse({
     status: formData.get("status"),
@@ -190,7 +218,7 @@ export async function updateQuotationStatusAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "quotation",
     entity_id: quotationId,
     action: "status_updated",
@@ -208,13 +236,16 @@ export async function updateQuotationAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
+  const profile = await requirePermission("quotations", "update");
+  let adminClient: ReturnType<typeof createAdminClient>;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
+  try {
+    adminClient = createAdminClient();
+  } catch {
+    return {
+      error:
+        "Quotation item replacement is not configured. Missing Supabase service role key.",
+    };
   }
 
   const items = parseQuotationItems(formData.get("items"));
@@ -241,8 +272,9 @@ export async function updateQuotationAction(
   }
 
   const values = parsed.data;
+  const quotationItemsInput = normalizeQuotationItems(values.items);
 
-  const subtotal = values.items.reduce(
+  const subtotal = quotationItemsInput.reduce(
     (sum, item) => sum + item.quantity * item.unit_price,
     0
   );
@@ -274,7 +306,16 @@ export async function updateQuotationAction(
     };
   }
 
-  const deleteItemsResult = await (supabase as any)
+  // Use the admin client only after server-side permission passes. This keeps
+  // quotation item replacement idempotent even when RLS blocks child-row DELETE.
+  const { data: previousItemsData } = await (adminClient as any)
+    .from("quotation_items")
+    .select("quotation_id, item_name, description, quantity, unit_price, total_price")
+    .eq("quotation_id", quotationId);
+
+  const previousItems = (previousItemsData ?? []) as QuotationItemReplacementRow[];
+
+  const deleteItemsResult = await (adminClient as any)
     .from("quotation_items")
     .delete()
     .eq("quotation_id", quotationId);
@@ -285,7 +326,7 @@ export async function updateQuotationAction(
     };
   }
 
-  const quotationItems = values.items.map((item) => ({
+  const quotationItems: QuotationItemReplacementRow[] = quotationItemsInput.map((item) => ({
     quotation_id: quotationId,
     item_name: item.item_name,
     description: item.description || null,
@@ -294,18 +335,22 @@ export async function updateQuotationAction(
     total_price: item.quantity * item.unit_price,
   }));
 
-  const itemsResult = await (supabase as any)
+  const itemsResult = await (adminClient as any)
     .from("quotation_items")
     .insert(quotationItems);
 
   if (itemsResult.error) {
+    if (previousItems.length > 0) {
+      await (adminClient as any).from("quotation_items").insert(previousItems);
+    }
+
     return {
       error: String(itemsResult.error.message || itemsResult.error),
     };
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "quotation",
     entity_id: quotationId,
     action: "updated",
