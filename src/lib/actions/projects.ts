@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/auth/require-permission";
 import {
   createProjectSchema,
   projectTaskSchema,
@@ -20,12 +21,7 @@ export async function createProjectAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("projects", "create");
 
   const parsed = createProjectSchema.safeParse({
     project_name: formData.get("project_name"),
@@ -85,7 +81,7 @@ export async function createProjectAction(
       next_renewal_date: values.next_renewal_date || null,
       project_cost_estimate: values.project_cost_estimate || 0,
       progress: values.progress,
-      created_by: user.id,
+      created_by: profile.id,
     })
     .select("id, project_name, project_manager_id")
     .single();
@@ -117,11 +113,11 @@ export async function createProjectAction(
     timeline_type: "created",
     title: "Project created",
     note: `Project created by team member.`,
-    created_by: user.id,
+    created_by: profile.id,
   });
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "project",
     entity_id: project.id,
     action: "created",
@@ -148,12 +144,7 @@ export async function updateProjectAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("projects", "update");
 
   const parsed = createProjectSchema.safeParse({
     project_name: formData.get("project_name"),
@@ -221,7 +212,7 @@ export async function updateProjectAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "project",
     entity_id: projectId,
     action: "updated",
@@ -239,12 +230,7 @@ export async function createProjectTaskAction(
   formData: FormData
 ): Promise<ActionResponse> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("projects", "create");
 
   const parsed = projectTaskSchema.safeParse({
     project_id: formData.get("project_id"),
@@ -272,7 +258,7 @@ export async function createProjectTaskAction(
       status: values.status,
       priority: values.priority,
       due_date: values.due_date ? new Date(values.due_date).toISOString() : null,
-      created_by: user.id,
+      created_by: profile.id,
     })
     .select("id, title, assigned_to")
     .single();
@@ -286,7 +272,7 @@ export async function createProjectTaskAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "project_task",
     entity_id: task.id,
     action: "created",
@@ -316,12 +302,7 @@ export async function updateProjectTaskStatusAction(
   formData: FormData
 ): Promise<ActionResponse> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("projects", "update");
 
   const parsed = updateProjectTaskStatusSchema.safeParse({
     status: formData.get("status"),
@@ -344,7 +325,7 @@ export async function updateProjectTaskStatusAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "project_task",
     entity_id: taskId,
     action: "status_updated",
@@ -360,12 +341,7 @@ export async function createProjectTimelineAction(
   formData: FormData
 ): Promise<ActionResponse> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("projects", "create");
 
   const parsed = projectTimelineSchema.safeParse({
     project_id: formData.get("project_id"),
@@ -385,7 +361,7 @@ export async function createProjectTimelineAction(
     timeline_type: values.timeline_type,
     title: values.title,
     note: values.note || null,
-    created_by: user.id,
+    created_by: profile.id,
   });
 
   if (result.error) {
@@ -393,7 +369,7 @@ export async function createProjectTimelineAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "project",
     entity_id: values.project_id,
     action: "timeline_added",
@@ -410,12 +386,7 @@ export async function addProjectMemberAction(
   formData: FormData
 ): Promise<ActionResponse> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("projects", "update");
 
   const staffId = String(formData.get("user_id") || "").trim();
   const role = String(formData.get("role") || "").trim();
@@ -430,7 +401,7 @@ export async function addProjectMemberAction(
       project_id: projectId,
       staff_id: staffId,
       role: role || null,
-      added_by: user.id,
+      added_by: profile.id,
     });
 
   if (error) {
@@ -440,7 +411,7 @@ export async function addProjectMemberAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "project_member",
     entity_id: projectId,
     action: "added",
@@ -467,12 +438,7 @@ export async function applyProjectTemplateAction(
   formData: FormData
 ): Promise<ActionResponse> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("projects", "update");
 
   const templateId = String(formData.get("template_id") || "").trim();
 
@@ -551,7 +517,7 @@ export async function applyProjectTemplateAction(
     description: task.description,
     priority: task.priority,
     status: task.status,
-    created_by: user.id,
+    created_by: profile.id,
   }));
 
   const { error } = await (supabase as any)
@@ -567,7 +533,7 @@ export async function applyProjectTemplateAction(
     timeline_type: "template_applied",
     title: "Template applied",
     note: `Applied template: ${template.name}`,
-    created_by: user.id,
+    created_by: profile.id,
   });
 
   revalidatePath(`/projects/${projectId}`);

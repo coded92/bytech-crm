@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/auth/require-permission";
 import { createExpenseSchema } from "@/lib/validations/expense";
 import type { Database } from "@/types/database";
 import { writeActivityLog } from "@/lib/logs/write-activity-log";
@@ -11,36 +12,6 @@ type ExpenseInsert = Database["public"]["Tables"]["expenses"]["Insert"];
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 
 type ActionResponse = { success: true } | { error: string };
-
-async function requireAdminUser(
-  supabase: Awaited<ReturnType<typeof createClient>>
-) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { user: null, error: "Unauthorized" };
-  }
-
-  const { data: profileData, error: profileError } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError) {
-    return { user: null, error: profileError.message };
-  }
-
-  const profile = profileData as { role: "admin" | "staff" } | null;
-
-  if (!profile || profile.role !== "admin") {
-    return { user: null, error: "Only admins can perform this action." };
-  }
-
-  return { user, error: null };
-}
 
 async function updateRestockPaymentSummary(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -73,6 +44,10 @@ async function updateRestockPaymentSummary(
 
   const totalAmount = Number(restockRow?.total_amount || 0);
 
+  if (totalAmount > 0 && paidAmount > totalAmount) {
+    throw new Error("Supplier payments cannot exceed the restock order total.");
+  }
+
   let paymentStatus: "unpaid" | "part_paid" | "paid" = "unpaid";
 
   if (paidAmount > 0 && paidAmount < totalAmount) {
@@ -98,13 +73,7 @@ export async function createExpenseAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
-
-  const adminCheck = await requireAdminUser(supabase);
-  if (adminCheck.error || !adminCheck.user) {
-    return { error: adminCheck.error ?? "Unauthorized" };
-  }
-
-  const user = adminCheck.user;
+  const profile = await requirePermission("expenses", "create");
 
   const parsed = createExpenseSchema.safeParse({
     title: formData.get("title"),
@@ -143,7 +112,7 @@ export async function createExpenseAction(
     restock_order_id: null,
     expense_date: values.expense_date,
     notes: values.notes || null,
-    created_by: user.id,
+    created_by: profile.id,
   };
 
   const { data: expense, error } = await expensesTable
@@ -156,7 +125,7 @@ export async function createExpenseAction(
   }
 
   await writeActivityLog({
-    actorId: user.id,
+    actorId: profile.id,
     entityType: "expense",
     entityId: expense.id,
     action: "created",
@@ -172,13 +141,7 @@ export async function createSupplierPurchaseExpenseAction(
   formData: FormData
 ): Promise<ActionResponse> {
   const supabase = await createClient();
-
-  const adminCheck = await requireAdminUser(supabase);
-  if (adminCheck.error || !adminCheck.user) {
-    return { error: adminCheck.error ?? "Unauthorized" };
-  }
-
-  const user = adminCheck.user;
+  const profile = await requirePermission("expenses", "create");
 
   const supplierId = String(formData.get("supplier_id") || "").trim();
   const restockOrderId = String(formData.get("restock_order_id") || "").trim();
@@ -215,7 +178,7 @@ export async function createSupplierPurchaseExpenseAction(
     restock_order_id: restockOrderId,
     expense_date: expenseDate,
     notes: `Payment method: ${paymentMethod}${description ? ` | ${description}` : ""}`,
-    created_by: user.id,
+    created_by: profile.id,
   };
 
   const { data: expense, error } = await (supabase as any)
@@ -233,6 +196,8 @@ export async function createSupplierPurchaseExpenseAction(
   try {
     await updateRestockPaymentSummary(supabase, restockOrderId);
   } catch (summaryError) {
+    await (supabase as any).from("expenses").delete().eq("id", expense.id);
+
     return {
       error:
         summaryError instanceof Error
@@ -242,7 +207,7 @@ export async function createSupplierPurchaseExpenseAction(
   }
 
   await writeActivityLog({
-    actorId: user.id,
+    actorId: profile.id,
     entityType: "expense",
     entityId: expense.id,
     action: "created",
@@ -250,7 +215,7 @@ export async function createSupplierPurchaseExpenseAction(
   });
 
   await writeActivityLog({
-    actorId: user.id,
+    actorId: profile.id,
     entityType: "supplier",
     entityId: supplierId,
     action: "payment_recorded",
@@ -269,13 +234,7 @@ export async function updateExpenseAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
-
-  const adminCheck = await requireAdminUser(supabase);
-  if (adminCheck.error || !adminCheck.user) {
-    return { error: adminCheck.error ?? "Unauthorized" };
-  }
-
-  const user = adminCheck.user;
+  const profile = await requirePermission("expenses", "update");
 
   const parsed = createExpenseSchema.safeParse({
     title: formData.get("title"),
@@ -293,6 +252,20 @@ export async function updateExpenseAction(
 
   const values = parsed.data;
 
+  const { data: existingExpenseData, error: existingExpenseError } = await (
+    supabase as any
+  )
+    .from("expenses")
+    .select("title, amount, category, expense_date, notes, restock_order_id")
+    .eq("id", expenseId)
+    .maybeSingle();
+
+  if (existingExpenseError || !existingExpenseData) {
+    return { error: existingExpenseError?.message ?? "Expense not found" };
+  }
+
+  const existingExpense = existingExpenseData as ExpenseRow;
+
   const { error } = await (supabase as any)
     .from("expenses")
     .update({
@@ -308,8 +281,32 @@ export async function updateExpenseAction(
     return { error: error.message };
   }
 
+  if (existingExpense.restock_order_id) {
+    try {
+      await updateRestockPaymentSummary(supabase, existingExpense.restock_order_id);
+    } catch (summaryError) {
+      await (supabase as any)
+        .from("expenses")
+        .update({
+          title: existingExpense.title,
+          amount: existingExpense.amount,
+          category: existingExpense.category,
+          expense_date: existingExpense.expense_date,
+          notes: existingExpense.notes,
+        })
+        .eq("id", expenseId);
+
+      return {
+        error:
+          summaryError instanceof Error
+            ? summaryError.message
+            : "Failed to update restock payment summary",
+      };
+    }
+  }
+
   await writeActivityLog({
-    actorId: user.id,
+    actorId: profile.id,
     entityType: "expense",
     entityId: expenseId,
     action: "updated",

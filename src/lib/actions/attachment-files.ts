@@ -2,27 +2,26 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  assertAllowedBucket,
+  assertRelatedEntityAccess,
+  assertSafeStoragePath,
+} from "@/lib/storage/file-security";
 
 type AttachmentRow = {
   id: string;
   bucket_name: string;
   file_path: string;
+  related_table: string;
+  related_id: string;
 };
 
 export async function getAttachmentSignedUrlAction(attachmentId: string) {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
-
   const { data, error } = await (supabase as any)
     .from("file_attachments")
-    .select("id, bucket_name, file_path")
+    .select("id, bucket_name, file_path, related_table, related_id")
     .eq("id", attachmentId)
     .maybeSingle();
 
@@ -32,9 +31,27 @@ export async function getAttachmentSignedUrlAction(attachmentId: string) {
     return { error: error?.message ?? "Attachment not found" };
   }
 
+  try {
+    assertAllowedBucket(attachment.bucket_name);
+    assertSafeStoragePath(attachment.file_path);
+    await assertRelatedEntityAccess({
+      supabase,
+      relatedTable: attachment.related_table,
+      relatedId: attachment.related_id,
+      bucket: attachment.bucket_name,
+      folder: attachment.file_path.split("/").slice(0, -1).join("/"),
+      action: "read",
+    });
+  } catch (accessError) {
+    return {
+      error:
+        accessError instanceof Error ? accessError.message : "Attachment access denied",
+    };
+  }
+
   const { data: signedData, error: signedError } = await supabase.storage
     .from(attachment.bucket_name)
-    .createSignedUrl(attachment.file_path, 60 * 10);
+    .createSignedUrl(attachment.file_path, 60 * 2);
 
   if (signedError || !signedData?.signedUrl) {
     return { error: signedError?.message ?? "Failed to generate file link" };
@@ -51,29 +68,9 @@ export async function deleteAttachmentAction(args: {
 
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
-
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const profile = profileData as { role: "admin" | "staff" } | null;
-
-  if (!profile || profile.role !== "admin") {
-    return { error: "Only admins can delete attachments." };
-  }
-
   const { data, error } = await (supabase as any)
     .from("file_attachments")
-    .select("id, bucket_name, file_path")
+    .select("id, bucket_name, file_path, related_table, related_id")
     .eq("id", attachmentId)
     .maybeSingle();
 
@@ -81,6 +78,25 @@ export async function deleteAttachmentAction(args: {
 
   if (error || !attachment) {
     return { error: error?.message ?? "Attachment not found" };
+  }
+
+  let access;
+  try {
+    assertAllowedBucket(attachment.bucket_name);
+    assertSafeStoragePath(attachment.file_path);
+    access = await assertRelatedEntityAccess({
+      supabase,
+      relatedTable: attachment.related_table,
+      relatedId: attachment.related_id,
+      bucket: attachment.bucket_name,
+      folder: attachment.file_path.split("/").slice(0, -1).join("/"),
+      action: "delete",
+    });
+  } catch (accessError) {
+    return {
+      error:
+        accessError instanceof Error ? accessError.message : "Attachment access denied",
+    };
   }
 
   const { error: storageError } = await supabase.storage
@@ -101,7 +117,7 @@ export async function deleteAttachmentAction(args: {
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: access.profile.id,
     entity_type: "file_attachment",
     entity_id: attachmentId,
     action: "deleted",

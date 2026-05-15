@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { postStockMovement } from "@/lib/inventory/stock-integrity";
 import { createFieldJobInventoryUsageSchema } from "@/lib/validations/field-job-inventory";
 
 type InventoryItemRow = {
@@ -51,11 +52,7 @@ export async function createFieldJobInventoryUsageAction(formData: FormData) {
     };
   }
 
-  if (Number(inventoryItem.current_quantity) < Number(values.quantity)) {
-    return { error: "Not enough stock available for this item" };
-  }
-
-  const { error: usageError } = await (supabase as any)
+  const { data: usageData, error: usageError } = await (supabase as any)
     .from("field_job_inventory_usage")
     .insert({
       field_job_id: values.field_job_id,
@@ -64,26 +61,34 @@ export async function createFieldJobInventoryUsageAction(formData: FormData) {
       unit_cost: inventoryItem.unit_cost || 0,
       notes: values.notes || null,
       created_by: user.id,
-    });
+    })
+    .select("id")
+    .single();
 
   if (usageError) {
     return { error: usageError.message };
   }
 
-  const { error: movementError } = await (supabase as any)
-    .from("inventory_movements")
-    .insert({
-      inventory_item_id: values.inventory_item_id,
-      movement_type: "stock_out",
-      quantity: values.quantity,
-      unit_cost: inventoryItem.unit_cost || 0,
-      field_job_id: values.field_job_id,
-      note: values.notes || `Issued to field job`,
-      created_by: user.id,
-    });
+  const movementResult = await postStockMovement({
+    supabase,
+    inventoryItemId: values.inventory_item_id,
+    movementType: "stock_out",
+    quantity: values.quantity,
+    unitCost: inventoryItem.unit_cost || 0,
+    fieldJobId: values.field_job_id,
+    note: values.notes || "Issued to field job",
+    actorId: user.id,
+  });
 
-  if (movementError) {
-    return { error: movementError.message };
+  if ("error" in movementResult) {
+    if (usageData?.id) {
+      await (supabase as any)
+        .from("field_job_inventory_usage")
+        .delete()
+        .eq("id", usageData.id);
+    }
+
+    return { error: movementResult.error };
   }
 
   await (supabase as any).from("activity_logs").insert({

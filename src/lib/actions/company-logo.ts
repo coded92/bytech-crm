@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requirePermission } from "@/lib/auth/require-permission";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFileToStorage } from "@/lib/storage/upload-file";
 
@@ -11,7 +11,7 @@ type CompanySettingsRow = {
 };
 
 export async function uploadCompanyLogoAction(formData: FormData) {
-  await requireAdmin();
+  await requirePermission("settings", "admin");
   const supabase = await createClient();
 
   const fileEntry = formData.get("logo");
@@ -69,7 +69,7 @@ export async function uploadCompanyLogoAction(formData: FormData) {
 }
 
 export async function deleteCompanyLogoAction() {
-  await requireAdmin();
+  await requirePermission("settings", "admin");
   const supabase = await createClient();
 
   const { data: settingsData } = await (supabase as any)

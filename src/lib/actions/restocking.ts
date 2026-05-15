@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/auth/require-permission";
+import { postStockMovement } from "@/lib/inventory/stock-integrity";
 import {
   createRestockOrderSchema,
   updateRestockStatusSchema,
@@ -60,11 +62,7 @@ async function updateRestockPaymentSummary(
 
 export async function createRestockOrderAction(formData: FormData) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("restocking", "create");
 
   let items: RestockItem[] = [];
   try {
@@ -100,14 +98,14 @@ export async function createRestockOrderAction(formData: FormData) {
     .from("inventory_restock_orders")
     .insert({
       supplier_id: values.supplier_id || null,
-      status: values.status,
+      status: values.status === "received" ? "ordered" : values.status,
       order_date: values.order_date,
       expected_date: values.expected_date || null,
-      received_date: values.received_date || null,
+      received_date: values.status === "received" ? null : values.received_date || null,
       reference: values.reference || null,
       notes: values.notes || null,
       total_amount: totalAmount,
-      created_by: user.id,
+      created_by: profile.id,
     })
     .select("id")
     .single();
@@ -135,20 +133,54 @@ export async function createRestockOrderAction(formData: FormData) {
   }
 
   if (values.status === "received") {
+    const appliedItems: RestockItem[] = [];
+
     for (const item of values.items) {
-      await (supabase as any).from("inventory_movements").insert({
-        inventory_item_id: item.inventory_item_id,
-        movement_type: "stock_in",
+      const movementResult = await postStockMovement({
+        supabase,
+        inventoryItemId: item.inventory_item_id,
+        movementType: "stock_in",
         quantity: item.quantity,
-        unit_cost: item.unit_cost,
+        unitCost: item.unit_cost,
         note: `Restock received: ${order.id}`,
-        created_by: user.id,
+        actorId: profile.id,
       });
+
+      if ("error" in movementResult) {
+        for (const appliedItem of appliedItems.reverse()) {
+          await postStockMovement({
+            supabase,
+            inventoryItemId: appliedItem.inventory_item_id,
+            movementType: "stock_out",
+            quantity: appliedItem.quantity,
+            unitCost: appliedItem.unit_cost,
+            note: `Rollback failed restock receipt: ${order.id}`,
+            actorId: profile.id,
+          });
+        }
+
+        return { error: movementResult.error };
+      }
+
+      appliedItems.push(item);
+    }
+
+    const { error: receiveError } = await (supabase as any)
+      .from("inventory_restock_orders")
+      .update({
+        status: "received",
+        received_date: values.received_date || new Date().toISOString().slice(0, 10),
+      })
+      .eq("id", order.id)
+      .eq("status", "ordered");
+
+    if (receiveError) {
+      return { error: receiveError.message };
     }
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "restock_order",
     entity_id: order.id,
     action: "created",
@@ -165,11 +197,7 @@ export async function updateRestockOrderStatusAction(
   formData: FormData
 ) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
+  const profile = await requirePermission("restocking", "update");
 
   const parsed = updateRestockStatusSchema.safeParse({
     status: formData.get("status"),
@@ -197,19 +225,31 @@ export async function updateRestockOrderStatusAction(
     status: "draft" | "ordered" | "received" | "cancelled";
   };
 
-  const { error } = await (supabase as any)
+  const isReceiving =
+    existingOrder.status !== "received" && values.status === "received";
+
+  const { data: statusUpdateData, error } = await (supabase as any)
     .from("inventory_restock_orders")
     .update({
       status: values.status,
       received_date: values.received_date || null,
     })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .eq("status", existingOrder.status)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     return { error: error.message };
   }
 
-  if (existingOrder.status !== "received" && values.status === "received") {
+  if (!statusUpdateData) {
+    return {
+      error: "Restock order was updated by another user. Please refresh and try again.",
+    };
+  }
+
+  if (isReceiving) {
     const { data: itemsData } = await (supabase as any)
       .from("inventory_restock_order_items")
       .select("inventory_item_id, quantity, unit_cost")
@@ -221,15 +261,45 @@ export async function updateRestockOrderStatusAction(
       unit_cost: number;
     }>;
 
+    const appliedItems: typeof items = [];
+
     for (const item of items) {
-      await (supabase as any).from("inventory_movements").insert({
-        inventory_item_id: item.inventory_item_id,
-        movement_type: "stock_in",
+      const movementResult = await postStockMovement({
+        supabase,
+        inventoryItemId: item.inventory_item_id,
+        movementType: "stock_in",
         quantity: item.quantity,
-        unit_cost: item.unit_cost,
+        unitCost: item.unit_cost,
         note: `Restock received: ${orderId}`,
-        created_by: user.id,
+        actorId: profile.id,
       });
+
+      if ("error" in movementResult) {
+        for (const appliedItem of appliedItems.reverse()) {
+          await postStockMovement({
+            supabase,
+            inventoryItemId: appliedItem.inventory_item_id,
+            movementType: "stock_out",
+            quantity: appliedItem.quantity,
+            unitCost: appliedItem.unit_cost,
+            note: `Rollback failed restock receipt: ${orderId}`,
+            actorId: profile.id,
+          });
+        }
+
+        await (supabase as any)
+          .from("inventory_restock_orders")
+          .update({
+            status: existingOrder.status,
+            received_date: null,
+          })
+          .eq("id", orderId)
+          .eq("status", "received");
+
+        return { error: movementResult.error };
+      }
+
+      appliedItems.push(item);
     }
   }
 

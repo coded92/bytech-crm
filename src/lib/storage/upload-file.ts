@@ -1,8 +1,12 @@
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
+import {
+  type StorageBucket,
+  validateUploadFile,
+} from "@/lib/storage/file-security";
 
 type UploadFileArgs = {
-  bucket: "branding" | "payment-proofs" | "attachments";
+  bucket: StorageBucket;
   file: File;
   folder: string;
 };
@@ -13,12 +17,17 @@ export async function uploadFileToStorage({
   folder,
 }: UploadFileArgs) {
   const supabase = await createClient();
+  let validation;
 
-  const extension = file.name.includes(".")
-    ? file.name.split(".").pop()
-    : "";
-  const safeExtension = extension ? `.${extension}` : "";
-  const filePath = `${folder}/${randomUUID()}${safeExtension}`;
+  try {
+    validation = validateUploadFile({ bucket, file, folder });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Invalid upload file",
+    };
+  }
+
+  const filePath = `${validation.safeFolder}/${randomUUID()}.${validation.extension}`;
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
@@ -26,7 +35,7 @@ export async function uploadFileToStorage({
   const { error } = await supabase.storage
     .from(bucket)
     .upload(filePath, buffer, {
-      contentType: file.type || "application/octet-stream",
+      contentType: validation.mimeType,
       upsert: false,
     });
 
@@ -36,8 +45,8 @@ export async function uploadFileToStorage({
 
   return {
     filePath,
-    fileName: file.name,
-    mimeType: file.type || null,
+    fileName: validation.safeFileName,
+    mimeType: validation.mimeType,
     fileSize: file.size || null,
   };
 }

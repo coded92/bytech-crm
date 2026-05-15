@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { assertRelatedEntityAccess } from "@/lib/storage/file-security";
 import { uploadFileToStorage } from "@/lib/storage/upload-file";
 
 type PhotoType = "before" | "after" | "inspection" | "materials" | "other";
@@ -12,14 +13,6 @@ type CreatedAttachmentRow = {
 
 export async function uploadFieldJobPhotoAction(formData: FormData) {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
 
   const fieldJobId = String(formData.get("field_job_id") || "");
   const photoType = String(formData.get("photo_type") || "") as PhotoType;
@@ -40,10 +33,26 @@ export async function uploadFieldJobPhotoAction(formData: FormData) {
     return { error: "Please choose a photo" };
   }
 
+  let access;
+  try {
+    access = await assertRelatedEntityAccess({
+      supabase,
+      relatedTable: "field_jobs",
+      relatedId: fieldJobId,
+      bucket: "attachments",
+      folder: `field-jobs/${fieldJobId}`,
+      action: "create",
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Photo upload denied",
+    };
+  }
+
   const uploadResult = await uploadFileToStorage({
-    bucket: "attachments",
+    bucket: access.bucket,
     file: fileEntry,
-    folder: `field-jobs/${fieldJobId}`,
+    folder: access.safeFolder,
   });
 
   if ("error" in uploadResult) {
@@ -60,7 +69,7 @@ export async function uploadFieldJobPhotoAction(formData: FormData) {
       file_name: uploadResult.fileName,
       mime_type: uploadResult.mimeType,
       file_size: uploadResult.fileSize,
-      uploaded_by: user.id,
+      uploaded_by: access.profile.id,
     })
     .select("id")
     .single();
@@ -80,7 +89,7 @@ export async function uploadFieldJobPhotoAction(formData: FormData) {
       photo_type: photoType,
       file_attachment_id: attachment.id,
       caption: caption || null,
-      uploaded_by: user.id,
+      uploaded_by: access.profile.id,
     });
 
   if (photoError) {
@@ -88,7 +97,7 @@ export async function uploadFieldJobPhotoAction(formData: FormData) {
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: access.profile.id,
     entity_type: "field_job",
     entity_id: fieldJobId,
     action: "photo_uploaded",

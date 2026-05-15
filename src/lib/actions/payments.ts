@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/auth/require-permission";
+import {
+  createPaymentAndSyncInvoice,
+  getInvoiceTotalsForAmount,
+} from "@/lib/finance/invoice-integrity";
 import {
   createInvoiceSchema,
   recordPaymentSchema,
@@ -16,14 +21,7 @@ export async function createInvoiceAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("invoices", "create");
 
   const parsed = createInvoiceSchema.safeParse({
     customer_id: formData.get("customer_id"),
@@ -57,9 +55,10 @@ export async function createInvoiceAction(
       billing_period_end: values.billing_period_end || null,
       reference: values.reference || null,
       notes: values.notes || null,
-      created_by: user.id,
+      created_by: profile.id,
       status: "pending",
       amount_paid: 0,
+      balance: values.amount,
     })
     .select("id")
     .single();
@@ -73,7 +72,7 @@ export async function createInvoiceAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "invoice",
     entity_id: invoice.id,
     action: "created",
@@ -90,14 +89,7 @@ export async function recordPaymentAction(
   formData: FormData
 ): Promise<ActionResponse> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("payments", "create");
 
   const parsed = recordPaymentSchema.safeParse({
     invoice_id: formData.get("invoice_id"),
@@ -116,32 +108,29 @@ export async function recordPaymentAction(
 
   const values = parsed.data;
 
-  const paymentResult = await (supabase as any)
-    .from("payment_transactions")
-    .insert({
+  const paymentResult = await createPaymentAndSyncInvoice({
+    supabase,
+    payment: {
       invoice_id: values.invoice_id,
       customer_id: values.customer_id,
       amount: values.amount,
       payment_method: values.payment_method,
       payment_reference: values.payment_reference || null,
       notes: values.notes || null,
-      received_by: user.id,
-    })
-    .select("id")
-    .single();
+      received_by: profile.id,
+    },
+  });
 
-  const payment = paymentResult.data as { id: string } | null;
-
-  if (paymentResult.error || !payment) {
+  if ("error" in paymentResult) {
     return {
-      error: String(paymentResult.error?.message || "Failed to record payment"),
+      error: paymentResult.error,
     };
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "payment",
-    entity_id: payment.id,
+    entity_id: paymentResult.payment.id,
     action: "received",
     description: `Recorded payment of ${values.amount}`,
   });
@@ -158,14 +147,7 @@ export async function updateInvoiceAction(
   formData: FormData
 ): Promise<{ success: true } | { error: string } | never> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("invoices", "update");
 
   const customerId = String(formData.get("customer_id") || "").trim();
   const quotationId = String(formData.get("quotation_id") || "").trim();
@@ -205,31 +187,44 @@ export async function updateInvoiceAction(
   }
 
   const amountPaid = Number(existingInvoice.amount_paid || 0);
-  const balance = Math.max(amount - amountPaid, 0);
+  const totals = getInvoiceTotalsForAmount(amount, amountPaid);
 
-  const { error } = await (supabase as any)
+  if ("error" in totals) {
+    return { error: String(totals.error) };
+  }
+
+  const { data: updatedInvoiceData, error } = await (supabase as any)
     .from("payment_invoices")
     .update({
       customer_id: customerId,
       quotation_id: quotationId || null,
       invoice_type: invoiceType,
-      amount,
-      balance,
+      amount: totals.amount,
+      balance: totals.balance,
       due_date: dueDate,
-      status,
+      status: status === "waived" ? status : totals.status,
       reference: reference || null,
       billing_period_start: billingPeriodStart || null,
       billing_period_end: billingPeriodEnd || null,
       notes: notes || null,
     })
-    .eq("id", invoiceId);
+    .eq("id", invoiceId)
+    .eq("amount_paid", amountPaid)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     return { error: error.message };
   }
 
+  if (!updatedInvoiceData) {
+    return {
+      error: "Invoice was updated by another user. Please refresh and try again.",
+    };
+  }
+
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "invoice",
     entity_id: invoiceId,
     action: "updated",
@@ -249,14 +244,7 @@ export async function updatePaymentAction(
   formData: FormData
 ): Promise<{ success: true } | { error: string } | never> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("payments", "update");
 
   const paymentMethod = String(formData.get("payment_method") || "").trim();
   const paymentReference = String(formData.get("payment_reference") || "").trim();
@@ -296,7 +284,7 @@ export async function updatePaymentAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "payment_transaction",
     entity_id: paymentId,
     action: "updated",

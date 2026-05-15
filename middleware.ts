@@ -1,6 +1,30 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const protectedPrefixes = [
+  "/dashboard",
+  "/leads",
+  "/quotations",
+  "/customers",
+  "/tasks",
+  "/reports",
+  "/payments",
+  "/expenses",
+  "/notifications",
+  "/deployments",
+  "/support",
+  "/assets",
+  "/field-jobs",
+  "/inventory",
+  "/suppliers",
+  "/restocking",
+  "/users",
+  "/settings",
+  "/audit-logs",
+  "/search",
+  "/projects",
+] as const;
+
 export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
@@ -45,33 +69,11 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   const isAuthPage = pathname.startsWith("/login");
-  const isDashboardRoute =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/leads") ||
-    pathname.startsWith("/quotations") ||
-    pathname.startsWith("/customers") ||
-    pathname.startsWith("/tasks") ||
-    pathname.startsWith("/reports") ||
-    pathname.startsWith("/payments") ||
-    pathname.startsWith("/expenses") ||
-    pathname.startsWith("/notifications");
-    pathname.startsWith("/deployments")
-    pathname.startsWith("/support")
-    pathname.startsWith("/assets")
-    pathname.startsWith("/field-jobs")
-    pathname.startsWith("/field-jobs/daily-report")
-    pathname.startsWith("/inventory")
-    pathname.startsWith("/suppliers")
-    pathname.startsWith("/restocking")
-    pathname.startsWith("/suppliers/payables")
-    pathname.startsWith("/users");
-    pathname.startsWith("/settings")
-    pathname.startsWith("/audit-logs")
-    pathname.startsWith("/search")
-    
-    
+  const isProtectedRoute = protectedPrefixes.some((path) =>
+    pathname.startsWith(path)
+  );
 
-  if (!user && isDashboardRoute) {
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -103,16 +105,13 @@ export const config = {
     "/support/:path*",
     "/assets/:path*",
     "/field-jobs/:path*",
-    "/field-jobs/daily-report",
     "/inventory/:path*",
     "/suppliers/:path*",
     "/restocking/:path*",
-    "/suppliers/payables",
     "/users/:path*",
     "/settings/:path*",
-    "/audit-logs",
-    "/search",
-    "/restocking/:path*",
-    "/suppliers/:path*",
+    "/audit-logs/:path*",
+    "/search/:path*",
+    "/projects/:path*",
   ],
 };

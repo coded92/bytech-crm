@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/auth/require-permission";
 import { createDailyReportSchema } from "@/lib/validations/report";
 
 type ActionResponse = { success: true } | { error: string };
@@ -26,14 +27,7 @@ export async function createDailyReportAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("reports", "create");
 
   const parsed = createDailyReportSchema.safeParse({
     report_date: formData.get("report_date"),
@@ -56,7 +50,7 @@ export async function createDailyReportAction(
   const reportResult = await (supabase as any)
     .from("daily_reports")
     .insert({
-      staff_id: user.id,
+      staff_id: profile.id,
       report_date: values.report_date,
       summary: values.summary,
       tasks_completed_count: values.tasks_completed_count,
@@ -85,7 +79,7 @@ export async function createDailyReportAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "daily_report",
     entity_id: report.id,
     action: "created",
@@ -103,14 +97,7 @@ export async function updateDailyReportAction(
   formData: FormData
 ): Promise<ActionResponse | never> {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const permissionProfile = await requirePermission("reports", "update");
 
   const parsed = createDailyReportSchema.safeParse({
     report_date: formData.get("report_date"),
@@ -133,7 +120,7 @@ export async function updateDailyReportAction(
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("id, role, department")
-    .eq("id", user.id)
+    .eq("id", permissionProfile.id)
     .single();
 
   if (profileError || !profileData) {
@@ -170,7 +157,7 @@ export async function updateDailyReportAction(
 
   const canEdit =
     profile.role === "admin" ||
-    existingReport.staff_id === user.id ||
+    existingReport.staff_id === profile.id ||
     (profile.department &&
       existingReport.staff?.department === profile.department);
 
@@ -196,7 +183,7 @@ export async function updateDailyReportAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "daily_report",
     entity_id: reportId,
     action: "updated",

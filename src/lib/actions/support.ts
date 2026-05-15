@@ -7,7 +7,7 @@ import {
   createSupportTicketSchema,
   updateSupportTicketSchema,
 } from "@/lib/validations/support";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requirePermission } from "@/lib/auth/require-permission";
 
 type CreatedTicketRow = {
   id: string;
@@ -17,14 +17,7 @@ type CreatedTicketRow = {
 
 export async function createSupportTicketAction(formData: FormData) {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("support", "create");
 
   const parsed = createSupportTicketSchema.safeParse({
     customer_id: formData.get("customer_id"),
@@ -50,7 +43,7 @@ export async function createSupportTicketAction(formData: FormData) {
     priority: values.priority,
     description: values.description || null,
     assigned_to: values.assigned_to || null,
-    created_by: user.id,
+    created_by: profile.id,
     status: "open" as const,
   };
 
@@ -68,7 +61,7 @@ export async function createSupportTicketAction(formData: FormData) {
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "support_ticket",
     entity_id: ticket.id,
     action: "created",
@@ -98,7 +91,7 @@ export async function createSupportTicketAction(formData: FormData) {
 
 
 export async function deleteSupportTicketAction(ticketId: string) {
-  const admin = await requireAdmin();
+  const profile = await requirePermission("support", "delete");
   const supabase = await createClient();
 
   const { error } = await (supabase as any)
@@ -111,7 +104,7 @@ export async function deleteSupportTicketAction(ticketId: string) {
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: admin.id,
+    actor_id: profile.id,
     entity_type: "support_ticket",
     entity_id: ticketId,
     action: "deleted",
@@ -128,14 +121,7 @@ export async function updateSupportTicketAction(
   formData: FormData
 ) {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  const profile = await requirePermission("support", "update");
 
   const customerId = String(formData.get("customer_id") || "").trim();
   const assetId = String(formData.get("asset_id") || "").trim();
@@ -187,7 +173,7 @@ export async function updateSupportTicketAction(
   }
 
   await (supabase as any).from("activity_logs").insert({
-    actor_id: user.id,
+    actor_id: profile.id,
     entity_type: "support_ticket",
     entity_id: ticketId,
     action: "updated",

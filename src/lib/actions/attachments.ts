@@ -2,14 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { assertRelatedEntityAccess } from "@/lib/storage/file-security";
 import { uploadFileToStorage } from "@/lib/storage/upload-file";
-
-type AttachmentBucket = "branding" | "payment-proofs" | "attachments";
 
 type UploadAttachmentArgs = {
   relatedTable: string;
   relatedId: string;
-  bucket: AttachmentBucket;
+  bucket: string;
   folder: string;
   file: File;
   revalidatePaths?: string[];
@@ -25,22 +24,30 @@ export async function uploadAttachmentAction({
 }: UploadAttachmentArgs) {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
-
   if (!file || file.size === 0) {
     return { error: "Please select a file" };
   }
 
+  let access;
+  try {
+    access = await assertRelatedEntityAccess({
+      supabase,
+      relatedTable,
+      relatedId,
+      bucket,
+      folder,
+      action: "create",
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Attachment access denied",
+    };
+  }
+
   const uploadResult = await uploadFileToStorage({
-    bucket,
+    bucket: access.bucket,
     file,
-    folder,
+    folder: access.safeFolder,
   });
 
   if ("error" in uploadResult) {
@@ -50,12 +57,12 @@ export async function uploadAttachmentAction({
   const { error } = await (supabase as any).from("file_attachments").insert({
     related_table: relatedTable,
     related_id: relatedId,
-    bucket_name: bucket,
+    bucket_name: access.bucket,
     file_path: uploadResult.filePath,
     file_name: uploadResult.fileName,
     mime_type: uploadResult.mimeType,
     file_size: uploadResult.fileSize,
-    uploaded_by: user.id,
+    uploaded_by: access.profile.id,
   });
 
   if (error) {
