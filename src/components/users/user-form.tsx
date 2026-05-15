@@ -22,18 +22,23 @@ const AVAILABLE_MODULES = [
   { key: "invoices", label: "Invoices" },
   { key: "payments", label: "Payments" },
   { key: "tasks", label: "Tasks" },
+  { key: "projects", label: "Projects" },
   { key: "reports", label: "Daily Reports" },
   { key: "support", label: "Support" },
+  { key: "notifications", label: "Notifications" },
   { key: "deployments", label: "Deployments" },
   { key: "assets", label: "Assets" },
   { key: "field_jobs", label: "Field Jobs" },
+  { key: "engineer_daily", label: "Engineer Daily" },
   { key: "inventory", label: "Inventory" },
   { key: "suppliers", label: "Suppliers" },
+  { key: "supplier_payables", label: "Supplier Payables" },
   { key: "restocking", label: "Restocking" },
   { key: "expenses", label: "Expenses" },
-  { key: "audit", label: "Audit Log" },
+  { key: "audit_logs", label: "Audit Logs" },
   { key: "users", label: "Users" },
   { key: "settings", label: "Settings" },
+  { key: "search", label: "Search" },
   { key: "messages", label: "Messages" },
 ] as const;
 
@@ -43,8 +48,8 @@ export function UserForm() {
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
 
   function applyPreset(name: keyof typeof MODULE_PRESETS) {
-  setSelectedModules([...MODULE_PRESETS[name]]);
-}
+    setSelectedModules([...MODULE_PRESETS[name]]);
+  }
 
   function toggleModule(module: string) {
     setSelectedModules((prev) =>
@@ -170,11 +175,6 @@ export function UserForm() {
               </h3>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username*</Label>
-                  <Input id="username" name="username" required />
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="password">Password*</Label>
                   <Input id="password" name="password" type="password" required />

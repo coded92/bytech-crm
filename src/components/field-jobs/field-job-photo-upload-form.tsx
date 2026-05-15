@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+const MAX_FIELD_JOB_PHOTO_BYTES = 10 * 1024 * 1024;
+
 export function FieldJobPhotoUploadForm({
   fieldJobId,
 }: {
@@ -22,6 +24,16 @@ export function FieldJobPhotoUploadForm({
         setSuccess("");
 
         startTransition(async () => {
+          const fileEntry = formData.get("photo");
+
+          if (
+            fileEntry instanceof File &&
+            fileEntry.size > MAX_FIELD_JOB_PHOTO_BYTES
+          ) {
+            setError("Photo is too large. Maximum size is 10MB.");
+            return;
+          }
+
           const result = await uploadFieldJobPhotoAction(formData);
 
           if (result?.error) {

@@ -8,6 +8,8 @@ export const MODULE_PRESETS = {
     "payments",
     "tasks",
     "reports",
+    "notifications",
+    "search",
   ],
 
   support: [
@@ -17,19 +19,25 @@ export const MODULE_PRESETS = {
     "tasks",
     "assets",
     "field_jobs",
+    "engineer_daily",
     "reports",
+    "notifications",
+    "search",
   ],
 
   engineering: [
     "dashboard",
     "projects",
     "field_jobs",
+    "engineer_daily",
     "deployments",
     "assets",
     "inventory",
     "support",
     "tasks",
     "reports",
+    "notifications",
+    "search",
   ],
 
   operations: [
@@ -41,6 +49,8 @@ export const MODULE_PRESETS = {
     "assets",
     "field_jobs",
     "reports",
+    "notifications",
+    "search",
   ],
 
   inventory: [
@@ -50,6 +60,8 @@ export const MODULE_PRESETS = {
     "restocking",
     "field_jobs",
     "reports",
+    "notifications",
+    "search",
   ],
 
   finance: [
@@ -59,16 +71,20 @@ export const MODULE_PRESETS = {
     "payments",
     "expenses",
     "suppliers",
+    "supplier_payables",
     "restocking",
     "reports",
+    "notifications",
+    "search",
   ],
 
   hr: [
     "dashboard",
     "users",
     "reports",
-    "audit",
+    "audit_logs",
     "settings",
+    "search",
   ],
 
   admin: [
@@ -82,16 +98,20 @@ export const MODULE_PRESETS = {
     "projects",
     "reports",
     "support",
+    "notifications",
     "deployments",
     "assets",
     "field_jobs",
+    "engineer_daily",
     "inventory",
     "suppliers",
+    "supplier_payables",
     "restocking",
     "expenses",
-    "audit",
+    "audit_logs",
     "users",
     "settings",
+    "search",
     "messages",
   ],
 } as const;

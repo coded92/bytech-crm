@@ -36,7 +36,7 @@ async function requireAdminContext() {
     return { error: "Unauthorized", supabase: null, adminClient: null, user: null };
   }
 
- const { data: profileData, error } = await (supabase as any)
+  const { data: profileData, error } = await (supabase as any)
     .from("profiles")
     .select("role")
     .eq("id", user.id)
@@ -70,7 +70,6 @@ export async function createUserAction(
     last_name: formData.get("last_name") || undefined,
     email: formData.get("email"),
     password: formData.get("password"),
-    username: formData.get("username"),
     role: formData.get("role"),
     department: formData.get("department"),
     job_title: formData.get("job_title") || undefined,
@@ -102,7 +101,6 @@ export async function createUserAction(
       full_name: fullName,
       first_name: values.first_name,
       last_name: values.last_name || null,
-      username: values.username,
       role: values.role,
       department: values.department,
       force_password_change: values.force_password_change,
@@ -123,7 +121,6 @@ export async function createUserAction(
       first_name: values.first_name,
       last_name: values.last_name || null,
       email: values.email,
-      username: values.username,
       role: values.role,
       department: values.department,
       job_title: values.job_title || null,
@@ -170,7 +167,6 @@ export async function updateUserAction(
     first_name: formData.get("first_name"),
     last_name: formData.get("last_name") || undefined,
     email: formData.get("email"),
-    username: formData.get("username"),
     role: formData.get("role"),
     department: formData.get("department"),
     job_title: formData.get("job_title") || undefined,
@@ -195,6 +191,14 @@ export async function updateUserAction(
   };
   const fullName = buildFullName(values.first_name, values.last_name);
 
+  if (userId === ctx.user.id && values.role !== "admin") {
+    return { error: "You cannot remove your own admin role." };
+  }
+
+  if (userId === ctx.user.id && values.is_active !== "true") {
+    return { error: "You cannot deactivate your own account." };
+  }
+
   const { error: profileUpdateError } = await (ctx.adminClient as any)
     .from("profiles")
     .update({
@@ -202,7 +206,6 @@ export async function updateUserAction(
       first_name: values.first_name,
       last_name: values.last_name || null,
       email: values.email,
-      username: values.username,
       role: values.role,
       department: values.department,
       job_title: values.job_title || null,
@@ -231,7 +234,6 @@ export async function updateUserAction(
         full_name: fullName,
         first_name: values.first_name,
         last_name: values.last_name || null,
-        username: values.username,
         role: values.role,
         department: values.department,
         force_password_change: values.force_password_change,
@@ -264,12 +266,16 @@ export async function toggleUserActiveAction(
 ): Promise<ActionResponse> {
   const ctx = await requireAdminContext();
 
-  if (ctx.error || !ctx.adminClient) {
+  if (ctx.error || !ctx.adminClient || !ctx.user) {
     return { error: ctx.error ?? "Unauthorized" };
   }
 
+  if (userId === ctx.user.id) {
+    return { error: "You cannot deactivate your own account." };
+  }
+
   const { error } = await (ctx.adminClient as any)
-  .from("profiles")
+    .from("profiles")
     .update({ is_active: nextValue })
     .eq("id", userId);
 

@@ -22,22 +22,28 @@ const AVAILABLE_MODULES = [
   { key: "invoices", label: "Invoices" },
   { key: "payments", label: "Payments" },
   { key: "tasks", label: "Tasks" },
+  { key: "projects", label: "Projects" },
   { key: "reports", label: "Daily Reports" },
   { key: "support", label: "Support" },
+  { key: "notifications", label: "Notifications" },
   { key: "deployments", label: "Deployments" },
   { key: "assets", label: "Assets" },
   { key: "field_jobs", label: "Field Jobs" },
+  { key: "engineer_daily", label: "Engineer Daily" },
   { key: "inventory", label: "Inventory" },
   { key: "suppliers", label: "Suppliers" },
+  { key: "supplier_payables", label: "Supplier Payables" },
   { key: "restocking", label: "Restocking" },
   { key: "expenses", label: "Expenses" },
-  { key: "audit", label: "Audit Log" },
+  { key: "audit_logs", label: "Audit Logs" },
   { key: "users", label: "Users" },
   { key: "settings", label: "Settings" },
+  { key: "search", label: "Search" },
   { key: "messages", label: "Messages" },
 ] as const;
 
 type UserEditFormProps = {
+  currentAdminId: string;
   user: {
     id: string;
     full_name: string;
@@ -63,13 +69,12 @@ type UserEditFormProps = {
     hire_date: string | null;
     birthday: string | null;
     employee_number: string | null;
-    username: string | null;
     force_password_change: boolean;
     allowed_modules: string[];
   };
 };
 
-export function UserEditForm({ user }: UserEditFormProps) {
+export function UserEditForm({ user, currentAdminId }: UserEditFormProps) {
   const [isPending, startTransition] = useTransition();
   const [isResetPending, startResetTransition] = useTransition();
   const [message, setMessage] = useState("");
@@ -77,6 +82,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
   const [selectedModules, setSelectedModules] = useState<string[]>(
     user.allowed_modules ?? []
   );
+  const isEditingSelf = user.id === currentAdminId;
 
   function applyPreset(name: keyof typeof MODULE_PRESETS) {
     setSelectedModules([...MODULE_PRESETS[name]]);
@@ -246,21 +252,15 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username*</Label>
-                  <Input
-                    id="username"
-                    name="username"
-                    defaultValue={user.username ?? ""}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
+                  {isEditingSelf ? (
+                    <input type="hidden" name="role" value={user.role} />
+                  ) : null}
                   <select
                     id="role"
-                    name="role"
+                    name={isEditingSelf ? undefined : "role"}
                     defaultValue={user.role}
+                    disabled={isEditingSelf}
                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
                   >
                     <option value="staff">Staff</option>
@@ -270,10 +270,18 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="is_active">Account Status</Label>
+                  {isEditingSelf ? (
+                    <input
+                      type="hidden"
+                      name="is_active"
+                      value={user.is_active ? "true" : "false"}
+                    />
+                  ) : null}
                   <select
                     id="is_active"
-                    name="is_active"
+                    name={isEditingSelf ? undefined : "is_active"}
                     defaultValue={user.is_active ? "true" : "false"}
+                    disabled={isEditingSelf}
                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
                   >
                     <option value="true">Active</option>

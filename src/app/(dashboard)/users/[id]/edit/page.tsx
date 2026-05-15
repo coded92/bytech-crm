@@ -10,14 +10,14 @@ type EditUserPageProps = {
 export default async function EditUserPage({
   params,
 }: EditUserPageProps) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
   const supabase = await createClient();
 
   const { data: user } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, first_name, last_name, email, role, department, job_title, phone, is_active, address, city, state, hire_date, birthday, employee_number, username, force_password_change, allowed_modules"
+      "id, full_name, first_name, last_name, email, role, department, job_title, phone, is_active, address, city, state, hire_date, birthday, employee_number, force_password_change, allowed_modules"
     )
     .eq("id", id)
     .single();
@@ -37,7 +37,7 @@ export default async function EditUserPage({
         </p>
       </div>
 
-      <UserEditForm user={user} />
+      <UserEditForm user={user} currentAdminId={admin.id} />
     </div>
   );
 }
