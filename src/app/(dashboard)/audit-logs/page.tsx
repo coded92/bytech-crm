@@ -1,8 +1,8 @@
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
-import { formatDateTime } from "@/lib/utils/format-date";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
 
 type AuditLogsPageProps = {
   searchParams: Promise<{
@@ -127,35 +127,8 @@ export default async function AuditLogsPage({
             <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               Failed to load audit logs: {error.message}
             </div>
-          ) : logs.length === 0 ? (
-            <p className="text-sm text-slate-500">No audit logs found.</p>
           ) : (
-            <div className="space-y-3">
-              {logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="rounded-xl border border-slate-200 p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {log.description || `${log.entity_type} ${log.action}`}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {log.entity_type} · {log.action} · ID: {log.entity_id}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        By: {log.actor?.full_name || "Unknown user"}
-                      </p>
-                    </div>
-
-                    <p className="text-sm text-slate-500">
-                      {formatDateTime(log.created_at)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ActivityFeed activities={logs} />
           )}
         </CardContent>
       </Card>

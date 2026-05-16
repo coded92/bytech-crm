@@ -1,10 +1,12 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
 
 type Department =
   | "sales"
@@ -56,9 +58,13 @@ type Metric = {
 type ActivityRow = {
   id: string;
   entity_type: string;
+  entity_id: string | null;
   action: string;
   description: string | null;
   created_at: string;
+  actor?: {
+    full_name: string | null;
+  } | null;
 };
 
 export default async function DashboardPage() {
@@ -188,9 +194,17 @@ export default async function DashboardPage() {
 
     supabase
       .from("activity_logs")
-      .select("id, entity_type, action, description, created_at")
+      .select(`
+        id,
+        entity_type,
+        entity_id,
+        action,
+        description,
+        created_at,
+        actor:profiles!activity_logs_actor_id_fkey(full_name)
+      `)
       .order("created_at", { ascending: false })
-      .limit(8),
+      .limit(12),
   ]);
 
   const invoices = (invoicesData ?? []) as InvoiceRow[];
@@ -224,7 +238,9 @@ export default async function DashboardPage() {
     return sum + Math.max(0, balance);
   }, 0);
 
-  const recentActivities = (recentActivityData ?? []) as ActivityRow[];
+  const recentActivities = ((recentActivityData ?? []) as ActivityRow[]).filter(
+    (activity) => canSeeActivity(profile, activity.entity_type)
+  ).slice(0, 8);
 
   const projectRevenue = (projectRevenueData ?? []) as ProjectRevenueRow[];
 
@@ -415,214 +431,143 @@ export default async function DashboardPage() {
     profile.role === "admin"
       ? "Management Dashboard"
       : `${formatDepartment(profile.department)} Dashboard`;
+  const moduleAccessLabel =
+    profile.role === "admin"
+      ? "Full Access"
+      : `${profile.allowed_modules.length} Modules`;
+  const primaryMetrics = visibleMetrics.slice(0, 6);
+  const secondaryMetrics = visibleMetrics.slice(6);
+  const chartTitles = getChartTitles(profile.department, profile.role);
+  const chartData = getChartData(profile.department, profile.role, {
+    monthlyInvoicesTotal,
+    monthlyPaymentsTotal,
+    monthlyExpensesTotal,
+    totalProjectOutstanding,
+    leadsCount: leadsCount ?? 0,
+    quotationsCount: quotationsCount ?? 0,
+    customersCount: customersCount ?? 0,
+    openSupportCount: openSupportCount ?? 0,
+    assetsCount: assetsCount ?? 0,
+    todayFieldJobsCount: todayFieldJobsCount ?? 0,
+    lowStockCount: lowStockCount ?? 0,
+    suppliersCount: suppliersCount ?? 0,
+    activeProjectsCount: activeProjectsCount ?? 0,
+    deploymentsCount: deploymentsCount ?? 0,
+  });
+  const healthItems = getDepartmentHealth({
+    role: profile.role,
+    department: profile.department,
+    overdueInvoicesCount,
+    openSupportCount: openSupportCount ?? 0,
+    lowStockCount: lowStockCount ?? 0,
+    overdueProjectTasksCount: overdueProjectTasksCount ?? 0,
+    projectsDueSoonCount: projectsDueSoonCount ?? 0,
+  });
+  const quickLinks = getUniqueQuickLinks(visibleMetrics);
 
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-          {getGreeting()}, {profile.full_name.split(" ")[0]}
-        </h2>
-
-        <p className="mt-1 text-sm font-medium text-slate-500">
-          {dashboardTitle}
-        </p>
-        <p className="mt-2 text-xs text-slate-500">
-          {formatDashboardDate()}
-        </p>
-        <p className="text-slate-600">
-          {profile.role === "admin"
+    <div className="space-y-7 pb-6">
+      <DashboardHero
+        greeting={`${getGreeting()}, ${profile.full_name.split(" ")[0]}`}
+        title={dashboardTitle}
+        date={formatDashboardDate()}
+        description={
+          profile.role === "admin"
             ? "Company-wide overview of sales, projects, operations, finance, inventory, and support."
-            : getDepartmentDescription(profile.department)}
-        </p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <MiniInfoCard label="Role" value={profile.role} />
-        <MiniInfoCard
-          label="Department"
-          value={formatDepartment(profile.department)}
-        />
-        <MiniInfoCard
-          label="Module Access"
-          value={
-            profile.role === "admin"
-              ? "Full Access"
-              : `${profile.allowed_modules.length} Modules`
-          }
-        />
-      </div>
+            : getDepartmentDescription(profile.department)
+        }
+        role={profile.role}
+        department={formatDepartment(profile.department)}
+        moduleAccess={moduleAccessLabel}
+        focus={getDepartmentFocus(profile.department, profile.role)}
+      />
 
       {visibleMetrics.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-slate-600">
-            No dashboard metrics are available for your current department and module access.
-            Please contact an admin to update your permissions.
-          </CardContent>
-        </Card>
+        <SectionCard>
+          <p className="text-sm text-slate-600">
+            No dashboard metrics are available for your current department and
+            module access. Please contact an admin to update your permissions.
+          </p>
+        </SectionCard>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {visibleMetrics.map((metric) => (
-            <MetricCard
-              key={metric.title}
-              title={metric.title}
-              value={metric.value}
-              href={metric.href}
-            />
-          ))}
-        </div>
+        <section className="space-y-3">
+          <SectionHeader
+            eyebrow="Executive Summary"
+            title="Key metrics"
+            description="Your most relevant indicators, filtered by role, department, and module access."
+          />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+            {primaryMetrics.map((metric, index) => (
+              <MetricCard
+                key={metric.title}
+                title={metric.title}
+                value={metric.value}
+                href={metric.href}
+                priority={index === 0 ? "primary" : "default"}
+              />
+            ))}
+          </div>
+
+          {secondaryMetrics.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {secondaryMetrics.map((metric) => (
+                <CompactMetricLink key={metric.title} metric={metric} />
+              ))}
+            </div>
+          ) : null}
+        </section>
       )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Department Focus</CardTitle>
-          </CardHeader>
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <SectionCard
+          title="Today's Priorities"
+          eyebrow="Focus"
+          description="A shorter working list for the department."
+        >
+          <PriorityList
+            items={getDepartmentPriorities(profile.department, profile.role)}
+          />
+        </SectionCard>
 
-          <CardContent className="text-sm text-slate-600">
-            {getDepartmentFocus(profile.department, profile.role)}
-          </CardContent>
-        </Card>
+        <SectionCard
+          title="Department Health"
+          eyebrow="Signals"
+          description="Operational indicators that may need attention."
+        >
+          <HealthPanel items={healthItems} />
+        </SectionCard>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Today&apos;s Priorities</CardTitle>
-          </CardHeader>
+      <DashboardCharts
+        titleOne={chartTitles.titleOne}
+        titleTwo={chartTitles.titleTwo}
+        chartOneData={chartData.chartOne}
+        chartTwoData={chartData.chartTwo}
+      />
 
-          <CardContent className="space-y-2 text-sm text-slate-600">
-            {getDepartmentPriorities(profile.department, profile.role).map((item) => (
-              <div
-                key={item}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
-              >
-                {item}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Department Health</CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-3 text-sm">
-            {getDepartmentHealth({
-              role: profile.role,
-              department: profile.department,
-              overdueInvoicesCount,
-              openSupportCount: openSupportCount ?? 0,
-              lowStockCount: lowStockCount ?? 0,
-              overdueProjectTasksCount: overdueProjectTasksCount ?? 0,
-              projectsDueSoonCount: projectsDueSoonCount ?? 0,
-            }).map((item) => (
-              <SnapshotRow key={item.label} label={item.label} value={item.value} />
-            ))}
-          </CardContent>
-        </Card>
-
-        <DashboardCharts
-          titleOne={getChartTitles(profile.department, profile.role).titleOne}
-          titleTwo={getChartTitles(profile.department, profile.role).titleTwo}
-          chartOneData={getChartData(profile.department, profile.role, {
-            monthlyInvoicesTotal,
-            monthlyPaymentsTotal,
-            monthlyExpensesTotal,
-            totalProjectOutstanding,
-            leadsCount: leadsCount ?? 0,
-            quotationsCount: quotationsCount ?? 0,
-            customersCount: customersCount ?? 0,
-            openSupportCount: openSupportCount ?? 0,
-            assetsCount: assetsCount ?? 0,
-            todayFieldJobsCount: todayFieldJobsCount ?? 0,
-            lowStockCount: lowStockCount ?? 0,
-            suppliersCount: suppliersCount ?? 0,
-            activeProjectsCount: activeProjectsCount ?? 0,
-            deploymentsCount: deploymentsCount ?? 0,
-          }).chartOne}
-          chartTwoData={getChartData(profile.department, profile.role, {
-            monthlyInvoicesTotal,
-            monthlyPaymentsTotal,
-            monthlyExpensesTotal,
-            totalProjectOutstanding,
-            leadsCount: leadsCount ?? 0,
-            quotationsCount: quotationsCount ?? 0,
-            customersCount: customersCount ?? 0,
-            openSupportCount: openSupportCount ?? 0,
-            assetsCount: assetsCount ?? 0,
-            todayFieldJobsCount: todayFieldJobsCount ?? 0,
-            lowStockCount: lowStockCount ?? 0,
-            suppliersCount: suppliersCount ?? 0,
-            activeProjectsCount: activeProjectsCount ?? 0,
-            deploymentsCount: deploymentsCount ?? 0,
-          }).chartTwo}
-        />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Work Queue</CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-3 text-sm">
+      <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+        <SectionCard title="Work Queue" eyebrow="Next Actions">
+          <div className="grid gap-2 sm:grid-cols-2">
             {getWorkQueue(profile.department, profile.role).map((item) => (
               <QuickLink key={item.href + item.label} href={item.href}>
                 {item.label}
               </QuickLink>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
-        {canAccess(profile, "reports") ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Daily Report Reminder</CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-3 text-sm text-slate-600">
-              <p>
-                Submit your daily report before closing for the day so your department
-                updates stay visible to management.
-              </p>
-
-              <QuickLink href="/reports/new">Submit Today&apos;s Report</QuickLink>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            {recentActivities.length === 0 ? (
-              <p className="text-sm text-slate-500">No recent activity.</p>
-            ) : (
-              recentActivities.map((item) => (
-                <ActivityItem
-                  key={item.id}
-                  title={item.description || `${item.entity_type} ${item.action}`}
-                  time={formatTimeAgo(item.created_at)}
-                />
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>
-              {profile.role === "admin"
-                ? "Management Snapshot"
-                : "Department Snapshot"}
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-3 text-sm">
+        <SectionCard
+          title={
+            profile.role === "admin"
+              ? "Management Snapshot"
+              : "Department Snapshot"
+          }
+          eyebrow="Overview"
+        >
+          <div className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
             {visibleMetrics.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                No snapshot data available.
-              </p>
+              <p className="text-sm text-slate-500">No snapshot data available.</p>
             ) : (
               visibleMetrics.slice(0, 10).map((metric) => (
                 <SnapshotRow
@@ -649,67 +594,82 @@ export default async function DashboardPage() {
                 />
               </>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Access</CardTitle>
-          </CardHeader>
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <SectionCard title="Recent Activity" eyebrow="Live Feed">
+          <ActivityFeed activities={recentActivities} />
+        </SectionCard>
 
-          <CardContent className="space-y-3 text-sm">
-            {getUniqueQuickLinks(visibleMetrics).length === 0 &&
-            !canAccess(profile, "reports") ? (
-              <p className="text-slate-500">No quick actions available.</p>
-            ) : (
-              <>
-                {getUniqueQuickLinks(visibleMetrics).map((metric) => (
-                  <QuickLink key={metric.href} href={metric.href}>
-                    {metric.title}
-                  </QuickLink>
-                ))}
+        <div className="space-y-4">
+          <SectionCard title="Quick Access" eyebrow="Shortcuts">
+            <div className="space-y-2 text-sm">
+              {quickLinks.length === 0 && !canAccess(profile, "reports") ? (
+                <p className="text-slate-500">No quick actions available.</p>
+              ) : (
+                <>
+                  {quickLinks.map((metric) => (
+                    <QuickLink key={metric.href} href={metric.href}>
+                      {metric.title}
+                    </QuickLink>
+                  ))}
 
-                {canAccess(profile, "reports") ? (
-                  <QuickLink href="/reports/new">Submit Daily Report</QuickLink>
-                ) : null}
+                  {canAccess(profile, "reports") ? (
+                    <QuickLink href="/reports/new">Submit Daily Report</QuickLink>
+                  ) : null}
 
-                {profile.department === "sales" && canAccess(profile, "leads") ? (
-                  <QuickLink href="/leads/new">Add New Lead</QuickLink>
-                ) : null}
+                  {profile.department === "sales" && canAccess(profile, "leads") ? (
+                    <QuickLink href="/leads/new">Add New Lead</QuickLink>
+                  ) : null}
 
-                {profile.department === "support" && canAccess(profile, "support") ? (
-                  <QuickLink href="/support/new">Open Support Ticket</QuickLink>
-                ) : null}
+                  {profile.department === "support" && canAccess(profile, "support") ? (
+                    <QuickLink href="/support/new">Open Support Ticket</QuickLink>
+                  ) : null}
 
-                {profile.department === "engineering" && canAccess(profile, "field_jobs") ? (
-                  <QuickLink href="/field-jobs/new">Create Field Job</QuickLink>
-                ) : null}
+                  {profile.department === "engineering" && canAccess(profile, "field_jobs") ? (
+                    <QuickLink href="/field-jobs/new">Create Field Job</QuickLink>
+                  ) : null}
 
-                {profile.department === "inventory" && canAccess(profile, "restocking") ? (
-                  <QuickLink href="/restocking/new">Create Restock Order</QuickLink>
-                ) : null}
+                  {profile.department === "inventory" && canAccess(profile, "restocking") ? (
+                    <QuickLink href="/restocking/new">Create Restock Order</QuickLink>
+                  ) : null}
 
-                {profile.department === "finance" && canAccess(profile, "invoices") ? (
-                  <QuickLink href="/payments/invoices/new">Create Invoice</QuickLink>
-                ) : null}
+                  {profile.department === "finance" && canAccess(profile, "invoices") ? (
+                    <QuickLink href="/payments/invoices/new">Create Invoice</QuickLink>
+                  ) : null}
 
-                {profile.role === "admin" ? (
-                  <>
-                    <QuickLink href="/users/new">Create User</QuickLink>
-                    <QuickLink href="/projects/new">Create Project</QuickLink>
-                    <QuickLink href="/quotations/new">Create Quotation</QuickLink>
-                    <QuickLink href="/settings/company">Company Settings</QuickLink>
-                  </>
-                ) : null}
-              </>
-            )}
-          </CardContent>
-        </Card>
+                  {profile.role === "admin" ? (
+                    <>
+                      <QuickLink href="/users/new">Create User</QuickLink>
+                      <QuickLink href="/projects/new">Create Project</QuickLink>
+                      <QuickLink href="/quotations/new">Create Quotation</QuickLink>
+                      <QuickLink href="/settings/company">Company Settings</QuickLink>
+                    </>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </SectionCard>
+
+          {canAccess(profile, "reports") ? (
+            <SectionCard title="Daily Report Reminder" eyebrow="Closeout">
+              <div className="space-y-3 text-sm text-slate-600">
+                <p>
+                  Submit your daily report before closing for the day so your
+                  department updates stay visible to management.
+                </p>
+
+                <QuickLink href="/reports/new">Submit Today&apos;s Report</QuickLink>
+              </div>
+            </SectionCard>
+          ) : null}
+        </div>
       </div>
     </div>
   );
 }
-
 function getUniqueQuickLinks(metrics: Metric[]) {
   const seen = new Set<string>();
 
@@ -725,6 +685,39 @@ function canAccess(profile: ProfileWithDepartment, moduleName: string) {
   return (
     profile.role === "admin" || profile.allowed_modules.includes(moduleName)
   );
+}
+
+function canSeeActivity(profile: ProfileWithDepartment, entityType: string) {
+  if (profile.role === "admin") return true;
+
+  const entityModuleMap: Record<string, string[]> = {
+    customer: ["customers"],
+    lead: ["leads"],
+    task: ["tasks"],
+    quotation: ["quotations"],
+    invoice: ["payments", "invoices"],
+    payment: ["payments"],
+    support_ticket: ["support"],
+    field_job: ["field_jobs"],
+    project: ["projects"],
+    project_task: ["projects"],
+    project_member: ["projects"],
+    inventory: ["inventory"],
+    inventory_item: ["inventory"],
+    supplier: ["suppliers"],
+    asset: ["assets"],
+    user: ["users"],
+    expense: ["expenses"],
+    daily_report: ["reports"],
+    deployment: ["deployments"],
+    restock_order: ["restocking"],
+  };
+
+  const modules = entityModuleMap[entityType];
+
+  if (!modules) return false;
+
+  return modules.some((moduleName) => profile.allowed_modules.includes(moduleName));
 }
 
 type ChartMetrics = {
@@ -1225,82 +1218,233 @@ function formatDepartment(department: Department | null) {
 
 
 
+function DashboardHero({
+  greeting,
+  title,
+  date,
+  description,
+  role,
+  department,
+  moduleAccess,
+  focus,
+}: {
+  greeting: string;
+  title: string;
+  date: string;
+  description: string;
+  role: string;
+  department: string;
+  moduleAccess: string;
+  focus: string;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="grid gap-0 lg:grid-cols-[1.4fr_0.9fr]">
+        <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white sm:p-7">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">
+            {date}
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
+            {greeting}
+          </h1>
+          <p className="mt-2 text-sm font-medium text-slate-300">{title}</p>
+          <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-200">
+            {description}
+          </p>
+        </div>
+
+        <div className="space-y-5 p-6 sm:p-7">
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <HeroContext label="Role" value={role} />
+            <HeroContext label="Department" value={department} />
+            <HeroContext label="Module Access" value={moduleAccess} />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Department Focus
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">{focus}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroContext({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-semibold capitalize text-slate-950">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        {eyebrow ? (
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+          {title}
+        </h2>
+      </div>
+      {description ? (
+        <p className="max-w-xl text-sm leading-6 text-slate-500">{description}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function SectionCard({
+  title,
+  eyebrow,
+  description,
+  children,
+}: {
+  title?: string;
+  eyebrow?: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="h-full rounded-2xl border border-slate-200 bg-white py-0 shadow-sm">
+      {(title || eyebrow || description) ? (
+        <div className="border-b border-slate-100 px-5 py-4">
+          {eyebrow ? (
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {eyebrow}
+            </p>
+          ) : null}
+          {title ? (
+            <h3 className="mt-1 text-base font-semibold text-slate-950">{title}</h3>
+          ) : null}
+          {description ? (
+            <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+          ) : null}
+        </div>
+      ) : null}
+      <CardContent className="p-5">{children}</CardContent>
+    </Card>
+  );
+}
+
 function MetricCard({
   title,
   value,
   href,
+  priority = "default",
 }: {
   title: string;
   value: string;
   href: string;
+  priority?: "primary" | "default";
 }) {
   return (
-    <Link href={href}>
-      <Card className="h-full transition hover:border-slate-300 hover:shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-slate-500">{title}</CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-2xl font-bold text-slate-900">{value}</p>
+    <Link href={href} className="group block h-full">
+      <Card
+        className={
+          priority === "primary"
+            ? "h-full rounded-2xl border-slate-900 bg-slate-950 py-0 text-white shadow-sm transition group-hover:-translate-y-0.5 group-hover:shadow-md"
+            : "h-full rounded-2xl border-slate-200 bg-white py-0 shadow-sm transition group-hover:-translate-y-0.5 group-hover:border-slate-300 group-hover:shadow-md"
+        }
+      >
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <p
+              className={
+                priority === "primary"
+                  ? "text-xs font-semibold uppercase tracking-wide text-slate-300"
+                  : "text-xs font-semibold uppercase tracking-wide text-slate-500"
+              }
+            >
+              {title}
+            </p>
+            <span
+              className={
+                priority === "primary"
+                  ? "h-2 w-2 rounded-full bg-white/70"
+                  : "h-2 w-2 rounded-full bg-slate-300"
+              }
+            />
+          </div>
+          <p className="mt-5 text-3xl font-semibold tracking-tight">{value}</p>
         </CardContent>
       </Card>
     </Link>
   );
 }
 
-function formatTimeAgo(dateString: string) {
-  const diff = Date.now() - new Date(dateString).getTime();
-
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-
-  return `${days}d ago`;
+function CompactMetricLink({ metric }: { metric: Metric }) {
+  return (
+    <Link
+      href={metric.href}
+      className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+    >
+      <span className="min-w-0 truncate font-medium text-slate-600">
+        {metric.title}
+      </span>
+      <span className="shrink-0 font-semibold text-slate-950">{metric.value}</span>
+    </Link>
+  );
 }
 
-function ActivityItem({
-  title,
-  time,
-}: {
-  title: string;
-  time: string;
-}) {
+function PriorityList({ items }: { items: string[] }) {
   return (
-    <div className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-      <p className="text-sm font-medium text-slate-900">
-        {title}
-      </p>
-
-      <p className="mt-1 text-xs text-slate-500">
-        {time}
-      </p>
+    <div className="grid gap-2 sm:grid-cols-2">
+      {items.map((item, index) => (
+        <div
+          key={item}
+          className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+        >
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+            {index + 1}
+          </span>
+          <span className="leading-6">{item}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-function MiniInfoCard({ label, value }: { label: string; value: string }) {
+function HealthPanel({ items }: { items: { label: string; value: string }[] }) {
   return (
-    <Card>
-      <CardContent className="p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-          {label}
-        </p>
-        <p className="mt-1 capitalize text-sm font-semibold text-slate-900">
-          {value}
-        </p>
-      </CardContent>
-    </Card>
+    <div className="space-y-2">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-3 text-sm"
+        >
+          <span className="text-slate-500">{item.label}</span>
+          <span className="text-right font-semibold text-slate-950">
+            {item.value}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
 function SnapshotRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2 last:border-b-0 last:pb-0">
       <span className="text-slate-500">{label}</span>
       <span className="text-right font-medium text-slate-900">{value}</span>
     </div>
@@ -1312,14 +1456,15 @@ function QuickLink({
   children,
 }: {
   href: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <Link
       href={href}
-      className="block rounded-lg border border-slate-200 px-3 py-2 text-slate-700 transition hover:bg-slate-50"
+      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
     >
-      {children}
+      <span>{children}</span>
+      <span className="text-slate-400">→</span>
     </Link>
   );
 }

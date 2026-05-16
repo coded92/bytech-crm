@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NotificationList } from "@/components/notifications/notification-list";
 
 type NotificationRow = {
   id: string;
@@ -33,7 +34,7 @@ type InvoiceAlertRow = {
   id: string;
   invoice_number: string;
   due_date: string | null;
-  balance_due: number;
+  balance: number;
   status: string;
 };
 
@@ -51,18 +52,6 @@ type FieldJobAlertRow = {
   scheduled_date: string | null;
   status: string;
 };
-
-function getLink(table: string | null, id: string | null) {
-  if (!table || !id) return null;
-
-  if (table === "tasks") return `/tasks/${id}`;
-  if (table === "leads") return `/leads/${id}`;
-  if (table === "invoices") return `/payments/invoices/${id}`;
-  if (table === "support_tickets") return `/support/${id}`;
-  if (table === "field_jobs") return `/field-jobs/${id}`;
-
-  return null;
-}
 
 export default async function NotificationsPage() {
   await requireModule("notifications");
@@ -127,8 +116,8 @@ export default async function NotificationsPage() {
       .in("status", ["new", "contacted", "interested", "follow_up"]),
 
     supabase
-      .from("invoices")
-      .select("id, invoice_number, due_date, balance_due, status")
+      .from("payment_invoices")
+      .select("id, invoice_number, due_date, balance, status")
       .neq("status", "paid")
       .lt("due_date", todayDate),
 
@@ -260,7 +249,7 @@ export default async function NotificationsPage() {
                   key={invoice.id}
                   href={`/payments/invoices/${invoice.id}`}
                   title={invoice.invoice_number}
-                  meta={`Due: ${formatDate(invoice.due_date)} · Balance: ${invoice.balance_due}`}
+                  meta={`Due: ${formatDate(invoice.due_date)} · Balance: ${invoice.balance}`}
                 />
               ))
             )}
@@ -317,56 +306,13 @@ export default async function NotificationsPage() {
         <CardHeader>
           <CardTitle>Recent Notifications</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           {notificationsError ? (
             <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               Failed to load notifications: {notificationsError.message}
             </div>
-          ) : notifications.length === 0 ? (
-            <EmptyText text="No notifications yet." />
           ) : (
-            notifications.map((notification) => {
-              const href = getLink(
-                notification.related_table,
-                notification.related_id
-              );
-
-              const content = (
-                <div
-                  className={`rounded-xl border p-4 ${
-                    notification.is_read
-                      ? "border-slate-200 bg-white"
-                      : "border-blue-200 bg-blue-50"
-                  }`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {notification.title}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {notification.message || "-"}
-                      </p>
-                      <p className="mt-2 text-xs capitalize text-slate-400">
-                        {notification.type.replaceAll("_", " ")}
-                      </p>
-                    </div>
-
-                    <p className="text-xs text-slate-500">
-                      {formatDateTime(notification.created_at)}
-                    </p>
-                  </div>
-                </div>
-              );
-
-              return href ? (
-                <Link key={notification.id} href={href} className="block">
-                  {content}
-                </Link>
-              ) : (
-                <div key={notification.id}>{content}</div>
-              );
-            })
+            <NotificationList notifications={notifications} />
           )}
         </CardContent>
       </Card>

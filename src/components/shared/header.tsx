@@ -1,7 +1,7 @@
 import { LogoutButton } from "@/components/shared/logout-button";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { MobileSidebar } from "@/components/shared/mobile-sidebar";
-import { GlobalSearchForm } from "@/components/shared/global-search-form";
+import { CommandPalette } from "@/components/command/command-palette";
 
 type HeaderProps = {
   fullName: string;
@@ -41,7 +41,7 @@ export async function Header({
           </div>
         </div>
 
-        <GlobalSearchForm />
+        <CommandPalette role={role} allowedModules={allowedModules} />
       </div>
     </header>
   );

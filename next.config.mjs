@@ -1,6 +1,4 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   experimental: {
     serverActions: {
       // CRM uploads are validated server-side at 10MB for attachments. Allow
