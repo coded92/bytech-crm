@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { PaymentForm } from "@/components/payments/payment-form";
@@ -58,6 +59,8 @@ type ReceiptRow = {
 export default async function InvoiceDetailsPage({
   params,
 }: InvoiceDetailsPageProps) {
+  await requireModule("payments");
+
   const { id } = await params;
   const supabase = await createClient();
 

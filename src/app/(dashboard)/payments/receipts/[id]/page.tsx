@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDateTime } from "@/lib/utils/format-date";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,8 @@ type AttachmentRow = {
 };
 
 export default async function ReceiptPage({ params }: ReceiptPageProps) {
+  await requireModule("payments");
+
   const { id } = await params;
   const supabase = await createClient();
 

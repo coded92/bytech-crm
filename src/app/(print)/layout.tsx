@@ -3,5 +3,9 @@ export default function PrintLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <div className="min-h-screen bg-white">{children}</div>;
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-950 print:bg-white">
+      {children}
+    </div>
+  );
 }

@@ -8,7 +8,7 @@ export function PrintButton() {
     <Button
       type="button"
       onClick={() => window.print()}
-      className="gap-2 print:hidden"
+      className="gap-2 bg-slate-950 text-white hover:bg-slate-800 print:hidden"
     >
       <Printer className="h-4 w-4" />
       Print / Save PDF

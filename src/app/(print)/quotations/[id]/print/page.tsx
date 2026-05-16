@@ -3,6 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDate } from "@/lib/utils/format-date";
 import { DocumentShell } from "@/components/shared/document-shell";
+import { DocumentInfoRow } from "@/components/shared/document-info-row";
+import {
+  DocumentSection,
+  DocumentSignatureBlock,
+  DocumentStatusStamp,
+  DocumentTable,
+  DocumentTotals,
+} from "@/components/shared/document-primitives";
 
 type PrintQuotationPageProps = {
   params: Promise<{ id: string }>;
@@ -24,6 +32,7 @@ type QuotationRow = {
   tax: number;
   total: number;
   notes: string | null;
+  created_by: string | null;
 };
 
 type QuotationItemRow = {
@@ -33,6 +42,10 @@ type QuotationItemRow = {
   quantity: number;
   unit_price: number;
   total_price: number;
+};
+
+type PreparedByRow = {
+  full_name: string | null;
 };
 
 export default async function PrintQuotationPage({
@@ -71,55 +84,109 @@ export default async function PrintQuotationPage({
   }
 
   const quotation = quotationData as QuotationRow;
-  const items = (itemsData ?? []) as QuotationItemRow[];
+  const items = normalizeQuotationItemsForPrint(
+    (itemsData ?? []) as QuotationItemRow[]
+  );
+
+  const { data: preparedByData } = quotation.created_by
+    ? await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", quotation.created_by)
+        .maybeSingle()
+    : { data: null };
+
+  const preparedBy = preparedByData as PreparedByRow | null;
+  const statusLabel = quotation.status.replaceAll("_", " ");
+  const validUntil = formatDate(quotation.valid_until);
 
   return (
     <DocumentShell title="Quotation" documentNumber={quotation.quote_number}>
       <div className="space-y-8">
-        <div className="grid gap-8 md:grid-cols-2 print:grid-cols-2">
+        <section className="document-avoid-break grid gap-8 md:grid-cols-[1fr_0.9fr] print:grid-cols-[1fr_0.9fr]">
+          <div className="border-l-4 border-slate-950 pl-5">
+            <p className="text-xs font-semibold uppercase text-slate-500">
+              Proposal Value
+            </p>
+            <p className="mt-2 text-4xl font-semibold text-slate-950">
+              {formatCurrency(quotation.total)}
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              Valid until {validUntil}
+            </p>
+          </div>
 
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-950">
-              Quotation To
+          <div className="flex flex-col items-start gap-3 md:items-end print:items-end">
+            <DocumentStatusStamp
+              status={statusLabel}
+              tone={getQuotationStatusTone(quotation.status)}
+            />
+            <p className="text-right text-sm text-slate-600">
+              Customer quotation and commercial proposal
+            </p>
+          </div>
+        </section>
+
+        <section className="document-avoid-break grid gap-6 md:grid-cols-2 print:grid-cols-2">
+          <div className="border border-slate-200 p-5">
+            <h3 className="text-sm font-semibold uppercase text-slate-950">
+              Prepared For
             </h3>
-            <div className="mt-3 space-y-1 text-sm text-slate-700">
-              <p className="font-semibold text-slate-950">
+            <div className="mt-4 space-y-3">
+              <p className="text-base font-semibold text-slate-950">
                 {quotation.company_name}
               </p>
-              <p>{quotation.contact_person || "-"}</p>
-              <p>{quotation.email || "-"}</p>
-              <p>{quotation.phone || "-"}</p>
-              <p className="whitespace-pre-wrap">{quotation.address || "-"}</p>
+              <DocumentInfoRow
+                label="Contact"
+                value={quotation.contact_person || "-"}
+              />
+              <DocumentInfoRow label="Email" value={quotation.email || "-"} />
+              <DocumentInfoRow label="Phone" value={quotation.phone || "-"} />
+              <DocumentInfoRow label="Address" value={quotation.address || "-"} />
             </div>
           </div>
 
-          <div className="space-y-2 text-sm">
-            <InfoRow label="Quote Number" value={quotation.quote_number} />
-            <InfoRow label="Quote Date" value={formatDate(quotation.created_at)} />
-            <InfoRow label="Valid Until" value={formatDate(quotation.valid_until)} />
-            <InfoRow label="Status" value={quotation.status.replaceAll("_", " ")} />
-            <InfoRow
-              label="Total (NGN)"
-              value={formatCurrency(quotation.total)}
-              strong
-            />
+          <div className="border border-slate-200 p-5">
+            <h3 className="text-sm font-semibold uppercase text-slate-950">
+              Quotation Details
+            </h3>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 print:grid-cols-2">
+              <DocumentInfoRow label="Quote No." value={quotation.quote_number} />
+              <DocumentInfoRow
+                label="Quote Date"
+                value={formatDate(quotation.created_at)}
+              />
+              <DocumentInfoRow label="Valid Until" value={validUntil} />
+              <DocumentInfoRow label="Status" value={statusLabel} />
+              <DocumentInfoRow
+                label="Prepared By"
+                value={preparedBy?.full_name || "-"}
+              />
+              <DocumentInfoRow
+                label="Proposal Total"
+                value={formatCurrency(quotation.total)}
+              />
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="overflow-hidden border border-slate-200">
-          <table className="min-w-full border-collapse">
+        <DocumentSection title="Proposed Items">
+          <DocumentTable>
             <thead>
-              <tr className="bg-slate-100">
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-700">
-                  Items
+              <tr className="bg-slate-950 text-white">
+                <th className="w-14 px-4 py-3 text-left text-xs font-semibold uppercase">
+                  No.
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
-                  Quantity
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
+                  Description
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
+                  Qty
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
                   Price
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
                   Amount
                 </th>
               </tr>
@@ -129,19 +196,22 @@ export default async function PrintQuotationPage({
               {items.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-4 py-6 text-center text-sm text-slate-500"
                   >
                     No items found.
                   </td>
                 </tr>
               ) : (
-                items.map((item) => (
+                items.map((item, index) => (
                   <tr key={item.id} className="border-t border-slate-200">
-                    <td className="px-4 py-4 text-sm text-slate-900">
+                    <td className="px-4 py-4 align-top text-sm font-medium text-slate-500">
+                      {index + 1}
+                    </td>
+                    <td className="px-4 py-4 align-top text-slate-950">
                       <p className="font-semibold">{item.item_name}</p>
                       {item.description ? (
-                        <p className="mt-1 whitespace-pre-wrap text-slate-600">
+                        <p className="mt-1 whitespace-pre-wrap leading-6 text-slate-600">
                           {item.description}
                         </p>
                       ) : null}
@@ -159,8 +229,8 @@ export default async function PrintQuotationPage({
                 ))
               )}
             </tbody>
-          </table>
-        </div>
+          </DocumentTable>
+        </DocumentSection>
 
         {itemsError ? (
           <p className="text-sm text-red-600">
@@ -168,68 +238,62 @@ export default async function PrintQuotationPage({
           </p>
         ) : null}
 
-        <div className="ml-auto w-full max-w-sm space-y-3 text-sm">
-          <SummaryRow label="Subtotal" value={formatCurrency(quotation.subtotal)} />
-          <SummaryRow label="Discount" value={formatCurrency(quotation.discount)} />
-          <SummaryRow label="Tax" value={formatCurrency(quotation.tax)} />
-          <SummaryRow label="Total" value={formatCurrency(quotation.total)} strong />
-        </div>
+        <DocumentTotals
+          rows={[
+            { label: "Subtotal", value: formatCurrency(quotation.subtotal) },
+            { label: "Discount", value: formatCurrency(quotation.discount) },
+            { label: "Tax", value: formatCurrency(quotation.tax) },
+            {
+              label: "Quotation Total",
+              value: formatCurrency(quotation.total),
+              strong: true,
+            },
+          ]}
+        />
 
-        <div>
-          <h3 className="text-sm font-bold text-slate-950">Notes / Terms</h3>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-            {quotation.notes || "-"}
+        <DocumentSection title="Notes / Commercial Terms">
+          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+            {quotation.notes ||
+              "This quotation is subject to availability and remains valid until the date stated above. Acceptance may be confirmed by signing below or issuing an approved purchase instruction."}
           </p>
-        </div>
+        </DocumentSection>
+
+        <DocumentSignatureBlock
+          leftLabel="Prepared / authorized by"
+          rightLabel="Customer acceptance"
+        />
       </div>
     </DocumentShell>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-  strong = false,
-}: {
-  label: string;
-  value?: string | number | null;
-  strong?: boolean;
-}) {
-  return (
-    <div className="flex justify-between gap-6">
-      <span className="text-slate-600">{label}:</span>
-      <span
-        className={
-          strong
-            ? "text-right text-base font-bold text-slate-950"
-            : "text-right font-medium text-slate-950"
-        }
-      >
-        {value ?? "-"}
-      </span>
-    </div>
-  );
+function getQuotationStatusTone(status: string) {
+  if (status === "accepted") return "success";
+  if (status === "sent" || status === "draft") return "neutral";
+  if (status === "expired") return "warning";
+  return "danger";
 }
 
-function SummaryRow({
-  label,
-  value,
-  strong = false,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <div
-      className={
-        strong
-          ? "flex justify-between border-t border-slate-300 pt-3 text-base font-bold text-slate-950"
-          : "flex justify-between text-slate-700"
-      }
-    >
-      <span>{label}</span>
-      <span>{value}</span>
-    </div>
-  );
+function normalizeQuotationItemsForPrint(items: QuotationItemRow[]) {
+  const seen = new Set<string>();
+  const normalizedItems: QuotationItemRow[] = [];
+
+  for (const item of items) {
+    const key = JSON.stringify({
+      item_name: item.item_name.trim(),
+      description: (item.description || "").trim(),
+      quantity: Number(item.quantity),
+      unit_price: Number(item.unit_price),
+      total_price: Number(item.total_price),
+    });
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalizedItems.push(item);
+  }
+
+  return normalizedItems;
 }

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/auth/require-module";
 import { InvoiceEditForm } from "@/components/payments/invoice-edit-form";
 
 type EditInvoicePageProps = {
@@ -35,6 +36,8 @@ type InvoiceRow = {
 export default async function EditInvoicePage({
   params,
 }: EditInvoicePageProps) {
+  await requireModule("payments");
+
   const { id } = await params;
   const supabase = await createClient();
 

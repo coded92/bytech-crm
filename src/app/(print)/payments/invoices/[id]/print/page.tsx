@@ -1,8 +1,18 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCompanySettings } from "@/lib/company/get-company-settings";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatDate } from "@/lib/utils/format-date";
 import { DocumentShell } from "@/components/shared/document-shell";
+import { DocumentInfoRow } from "@/components/shared/document-info-row";
+import {
+  DocumentSection,
+  DocumentSignatureBlock,
+  DocumentStatusStamp,
+  DocumentTable,
+  DocumentTotals,
+  PaymentInstructionsBlock,
+} from "@/components/shared/document-primitives";
 
 type PrintInvoicePageProps = {
   params: Promise<{ id: string }>;
@@ -18,6 +28,9 @@ type InvoiceRow = {
   balance: number;
   due_date: string;
   created_at: string;
+  billing_period_start: string | null;
+  billing_period_end: string | null;
+  reference: string | null;
   status: "pending" | "partial" | "paid" | "overdue" | "waived";
   notes: string | null;
   customer?: {
@@ -51,6 +64,7 @@ export default async function PrintInvoicePage({
   }
 
   const supabase = await createClient();
+  const settings = await getCompanySettings();
 
   const { data: invoiceData, error } = await supabase
     .from("payment_invoices")
@@ -85,60 +99,106 @@ export default async function PrintInvoicePage({
     : { data: [] };
 
   const quotationItems = (quotationItemsData ?? []) as QuotationItemRow[];
+  const billingPeriod = formatBillingPeriod(
+    invoice.billing_period_start,
+    invoice.billing_period_end
+  );
+  const invoiceTypeLabel = invoice.invoice_type.replaceAll("_", " ");
+  const paymentReference = invoice.reference || invoice.invoice_number;
 
   return (
     <DocumentShell title="Invoice" documentNumber={invoice.invoice_number}>
       <div className="space-y-8">
-        <div className="invoice-header grid gap-8 md:grid-cols-2">
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-950">
+        <section className="document-avoid-break grid gap-8 md:grid-cols-[1fr_0.9fr] print:grid-cols-[1fr_0.9fr]">
+          <div className="border-l-4 border-slate-950 pl-5">
+            <p className="text-xs font-semibold uppercase text-slate-500">
+              Balance Due
+            </p>
+            <p className="mt-2 text-4xl font-semibold text-slate-950">
+              {formatCurrency(invoice.balance)}
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              Due {formatDate(invoice.due_date)}
+            </p>
+          </div>
+
+          <div className="flex flex-col items-start gap-3 md:items-end print:items-end">
+            <DocumentStatusStamp
+              status={invoice.status.replaceAll("_", " ")}
+              tone={getInvoiceStatusTone(invoice.status)}
+            />
+            <p className="text-right text-sm capitalize text-slate-600">
+              {invoiceTypeLabel} invoice
+            </p>
+          </div>
+        </section>
+
+        <section className="document-avoid-break grid gap-6 md:grid-cols-2 print:grid-cols-2">
+          <div className="border border-slate-200 p-5">
+            <h3 className="text-sm font-semibold uppercase text-slate-950">
               Bill To
             </h3>
-
-            <div className="mt-3 space-y-1 text-sm text-slate-700">
-              <p className="font-semibold text-slate-950">
+            <div className="mt-4 space-y-3">
+              <p className="text-base font-semibold text-slate-950">
                 {invoice.customer?.company_name || "-"}
               </p>
-              <p>{invoice.customer?.contact_person || "-"}</p>
-              <p>{invoice.customer?.email || "-"}</p>
-              <p>{invoice.customer?.phone || "-"}</p>
-              <p className="whitespace-pre-wrap">
-                {invoice.customer?.address || "-"}
-              </p>
+              <DocumentInfoRow
+                label="Contact"
+                value={invoice.customer?.contact_person || "-"}
+              />
+              <DocumentInfoRow label="Email" value={invoice.customer?.email || "-"} />
+              <DocumentInfoRow label="Phone" value={invoice.customer?.phone || "-"} />
+              <DocumentInfoRow
+                label="Address"
+                value={invoice.customer?.address || "-"}
+              />
             </div>
           </div>
 
-          <div className="space-y-2 text-sm">
-            <InfoRow label="Invoice Number" value={invoice.invoice_number} />
-            <InfoRow label="Invoice Date" value={formatDate(invoice.created_at)} />
-            <InfoRow label="Payment Due" value={formatDate(invoice.due_date)} />
-            <InfoRow
-              label="Quotation Ref"
-              value={invoice.quotation?.quote_number ?? "-"}
-            />
-            <InfoRow label="Status" value={invoice.status.replaceAll("_", " ")} />
-            <InfoRow
-              label="Amount Due (NGN)"
-              value={formatCurrency(invoice.balance)}
-              strong
-            />
+          <div className="border border-slate-200 p-5">
+            <h3 className="text-sm font-semibold uppercase text-slate-950">
+              Invoice Details
+            </h3>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 print:grid-cols-2">
+              <DocumentInfoRow label="Invoice No." value={invoice.invoice_number} />
+              <DocumentInfoRow
+                label="Invoice Date"
+                value={formatDate(invoice.created_at)}
+              />
+              <DocumentInfoRow
+                label="Payment Due"
+                value={formatDate(invoice.due_date)}
+              />
+              <DocumentInfoRow
+                label="Quotation Ref"
+                value={invoice.quotation?.quote_number ?? "-"}
+              />
+              <DocumentInfoRow
+                label="Billing Period"
+                value={billingPeriod}
+              />
+              <DocumentInfoRow
+                label="Payment Ref"
+                value={paymentReference}
+              />
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="overflow-hidden border border-slate-200">
-          <table className="min-w-full border-collapse">
+        <DocumentSection title="Invoice Items">
+          <DocumentTable>
             <thead>
-              <tr className="bg-slate-100">
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-700">
-                  Items
+              <tr className="bg-slate-950 text-white">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
+                  Description
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
-                  Quantity
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
+                  Qty
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
                   Price
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-700">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
                   Amount
                 </th>
               </tr>
@@ -148,10 +208,10 @@ export default async function PrintInvoicePage({
               {quotationItems.length > 0 ? (
                 quotationItems.map((item) => (
                   <tr key={item.id} className="border-t border-slate-200">
-                    <td className="px-4 py-4 text-sm text-slate-900">
+                    <td className="px-4 py-4 text-slate-950">
                       <p className="font-semibold">{item.item_name}</p>
                       {item.description ? (
-                        <p className="mt-1 whitespace-pre-wrap text-slate-600">
+                        <p className="mt-1 whitespace-pre-wrap leading-6 text-slate-600">
                           {item.description}
                         </p>
                       ) : null}
@@ -169,8 +229,8 @@ export default async function PrintInvoicePage({
                 ))
               ) : (
                 <tr className="border-t border-slate-200">
-                  <td className="px-4 py-4 text-sm text-slate-900 capitalize">
-                    {invoice.invoice_type.replaceAll("_", " ")} invoice
+                  <td className="px-4 py-4 capitalize text-slate-950">
+                    {invoiceTypeLabel} invoice
                   </td>
                   <td className="px-4 py-4 text-right text-sm text-slate-700">
                     1
@@ -184,80 +244,69 @@ export default async function PrintInvoicePage({
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
+          </DocumentTable>
+        </DocumentSection>
 
-        <div className="ml-auto w-full max-w-sm space-y-3 text-sm">
-          <SummaryRow
-            label="Total"
-            value={formatCurrency(invoice.amount)}
-          />
-          <SummaryRow
-            label="Amount Paid"
-            value={formatCurrency(invoice.amount_paid)}
-          />
-          <SummaryRow
-            label="Amount Due (NGN)"
-            value={formatCurrency(invoice.balance)}
-            strong
-          />
-        </div>
+        <DocumentTotals
+          rows={[
+            { label: "Invoice Total", value: formatCurrency(invoice.amount) },
+            { label: "Amount Paid", value: formatCurrency(invoice.amount_paid) },
+            {
+              label: "Balance Due",
+              value: formatCurrency(invoice.balance),
+              strong: true,
+            },
+          ]}
+        />
 
-        <div>
-          <h3 className="text-sm font-bold text-slate-950">Notes / Terms</h3>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-            {invoice.notes || "-"}
+        <PaymentInstructionsBlock
+          instructions={
+            <p>
+              Please use the invoice number or payment reference when making
+              payment. Contact {settings.company_name}
+              {settings.email ? ` at ${settings.email}` : ""}
+              {settings.phone ? ` or ${settings.phone}` : ""} for approved
+              payment channels.
+            </p>
+          }
+          reference={paymentReference}
+        />
+
+        <DocumentSection title="Commercial Notes / Terms">
+          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+            {invoice.notes ||
+              "Payment is due by the date stated on this invoice. Please quote the invoice number on all payment correspondence."}
           </p>
-        </div>
+        </DocumentSection>
+
+        <DocumentSignatureBlock
+          leftLabel="Authorized by"
+          rightLabel="Received by customer"
+        />
       </div>
     </DocumentShell>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-  strong = false,
-}: {
-  label: string;
-  value?: string | number | null;
-  strong?: boolean;
-}) {
-  return (
-    <div className="flex justify-between gap-6">
-      <span className="text-slate-600">{label}:</span>
-      <span
-        className={
-          strong
-            ? "text-right text-base font-bold text-slate-950"
-            : "text-right font-medium text-slate-950"
-        }
-      >
-        {value ?? "-"}
-      </span>
-    </div>
-  );
+function getInvoiceStatusTone(status: InvoiceRow["status"]) {
+  if (status === "paid" || status === "waived") return "success";
+  if (status === "partial") return "warning";
+  if (status === "overdue") return "danger";
+  return "neutral";
 }
 
-function SummaryRow({
-  label,
-  value,
-  strong = false,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <div
-      className={
-        strong
-          ? "flex justify-between border-t border-slate-300 pt-3 text-base font-bold text-slate-950"
-          : "flex justify-between text-slate-700"
-      }
-    >
-      <span>{label}</span>
-      <span>{value}</span>
-    </div>
-  );
+function formatBillingPeriod(start: string | null, end: string | null) {
+  if (start && end) {
+    return `${formatDate(start)} - ${formatDate(end)}`;
+  }
+
+  if (start) {
+    return `From ${formatDate(start)}`;
+  }
+
+  if (end) {
+    return `Until ${formatDate(end)}`;
+  }
+
+  return "-";
 }
