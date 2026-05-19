@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { Button } from "@/components/ui/button";
 
 type SupplierRow = {
@@ -13,13 +17,16 @@ type SupplierRow = {
 };
 
 export default async function SuppliersPage() {
-  await requireModule("suppliers");
+  const profile = await requireModule("suppliers");
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("suppliers")
     .select("id, supplier_code, company_name, contact_person, phone, is_active")
-    .order("company_name");
+    .order("company_name")
+    .limit(itemsPerPage);
 
   const suppliers = (data ?? []) as SupplierRow[];
 

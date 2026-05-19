@@ -2,6 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type SearchPageProps = {
@@ -49,7 +53,9 @@ type AssetRow = {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   await requireModule("search");
-  await requireProfile();
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const searchLimit = Math.min(getUserItemsPerPage(preferences), 25);
   const { q } = await searchParams;
   const supabase = await createClient();
 
@@ -87,7 +93,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       .from("leads")
       .select("id, company_name, contact_person, status")
       .or(`company_name.ilike.${likeValue},contact_person.ilike.${likeValue}`)
-      .limit(10),
+      .limit(searchLimit),
 
     supabase
       .from("customers")
@@ -95,7 +101,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       .or(
         `company_name.ilike.${likeValue},customer_code.ilike.${likeValue},contact_person.ilike.${likeValue}`
       )
-      .limit(10),
+      .limit(searchLimit),
 
     supabase
       .from("payment_invoices")
@@ -106,19 +112,19 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         customer:customers(company_name)
       `)
       .ilike("invoice_number", likeValue)
-      .limit(10),
+      .limit(searchLimit),
 
     supabase
       .from("support_tickets")
       .select("id, ticket_number, title, status")
       .or(`ticket_number.ilike.${likeValue},title.ilike.${likeValue}`)
-      .limit(10),
+      .limit(searchLimit),
 
     supabase
       .from("assets")
       .select("id, asset_tag, serial_number, device_type")
       .or(`asset_tag.ilike.${likeValue},serial_number.ilike.${likeValue}`)
-      .limit(10),
+      .limit(searchLimit),
   ]);
 
   const leads = (leadsResult.data ?? []) as LeadRow[];

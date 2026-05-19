@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { formatUserDate } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate } from "@/lib/utils/format-date";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
 import { Badge } from "@/components/ui/badge";
 
@@ -42,7 +43,13 @@ type ProjectRow = {
   } | null;
 };
 
-export function ProjectTable({ projects }: { projects: ProjectRow[] }) {
+export function ProjectTable({
+  projects,
+  dateFormat = "DD/MM/YYYY",
+}: {
+  projects: ProjectRow[];
+  dateFormat?: UserPreferenceSnapshot["date_format"];
+}) {
   if (projects.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -78,7 +85,7 @@ export function ProjectTable({ projects }: { projects: ProjectRow[] }) {
                 Type: {project.project_type.replaceAll("_", " ")}
               </p>
               <p>Manager: {project.project_manager?.full_name || "-"}</p>
-              <p>Deadline: {formatDate(project.deadline)}</p>
+              <p>Deadline: {formatUserDate(project.deadline, { date_format: dateFormat })}</p>
               <p>Progress: {project.progress}%</p>
               <p>Balance: {formatCurrency(project.outstanding_balance)}</p>
             </div>

@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDateTime } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +39,8 @@ export default async function SupplierDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const [{ data: supplierData }, { data: restocksData }] = await Promise.all([
@@ -103,7 +107,7 @@ export default async function SupplierDetailsPage({
           />
           <InfoItem
             label="Updated At"
-            value={formatDateTime(supplier.updated_at)}
+            value={formatUserDateTime(supplier.updated_at, preferences)}
           />
         </CardContent>
       </Card>
@@ -143,7 +147,7 @@ export default async function SupplierDetailsPage({
                   <span>Total: {formatCurrency(item.total_amount || 0)}</span> ·{" "}
                   <span>Paid: {formatCurrency(item.paid_amount || 0)}</span> ·{" "}
                   <span className="capitalize">{item.payment_status}</span> ·{" "}
-                  <span>{formatDateTime(item.created_at)}</span>
+                  <span>{formatUserDateTime(item.created_at, preferences)}</span>
                 </p>
               </div>
             ))

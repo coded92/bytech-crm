@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { SupportTable } from "@/components/support/support-table";
 import { Button } from "@/components/ui/button";
 
@@ -21,7 +25,9 @@ type SupportRow = {
 };
 
 export default async function SupportPage() {
-  await requireModule("support");
+  const profile = await requireModule("support");
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -37,7 +43,8 @@ export default async function SupportPage() {
       customer:customers(company_name),
       assigned_profile:profiles!support_tickets_assigned_to_fkey(full_name)
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   const tickets = (data ?? []) as SupportRow[];
 
@@ -63,7 +70,7 @@ export default async function SupportPage() {
           Failed to load support tickets: {error.message}
         </div>
       ) : (
-        <SupportTable tickets={tickets} />
+        <SupportTable tickets={tickets} preferences={preferences} />
       )}
     </div>
   );

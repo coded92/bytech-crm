@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logSecurityEvent } from "@/lib/security/events";
 import {
   createUserSchema,
   updateUserSchema,
@@ -150,7 +151,8 @@ export async function createUserAction(
   });
 
   revalidatePath("/users");
-  redirect("/users");
+  revalidatePath("/team-management");
+  redirect("/team-management?tab=members");
 }
 
 export async function updateUserAction(
@@ -254,6 +256,7 @@ export async function updateUserAction(
   });
 
   revalidatePath("/users");
+  revalidatePath("/team-management");
   revalidatePath(`/users/${userId}`);
   revalidatePath(`/users/${userId}/edit`);
 
@@ -282,6 +285,7 @@ export async function toggleUserActiveAction(
   if (error) return { error: error.message };
 
   revalidatePath("/users");
+  revalidatePath("/team-management");
   revalidatePath(`/users/${userId}`);
 
   return { success: true };
@@ -296,11 +300,29 @@ export async function sendPasswordResetAction(
     return { error: ctx.error ?? "Unauthorized" };
   }
 
+  const { data: targetProfileData } = await (ctx.adminClient as any)
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
   const result = await ctx.adminClient.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/login`,
   });
 
   if (result.error) return { error: result.error.message };
+
+  const targetProfile = targetProfileData as { id: string } | null;
+
+  if (targetProfile?.id && ctx.user) {
+    await logSecurityEvent({
+      userId: targetProfile.id,
+      eventType: "password_reset",
+      metadata: {
+        requested_by: ctx.user.id,
+      },
+    });
+  }
 
   return { success: true };
 }

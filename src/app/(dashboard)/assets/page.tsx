@@ -2,6 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { AssetTable } from "@/components/assets/asset-table";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +28,8 @@ type AssetRow = {
 export default async function AssetsPage() {
   await requireModule("assets")
   const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -39,7 +45,8 @@ export default async function AssetsPage() {
       customer:customers(company_name),
       branch:customer_branches(branch_name)
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   const assets = (data ?? []) as AssetRow[];
 
@@ -67,7 +74,7 @@ export default async function AssetsPage() {
           Failed to load assets: {error.message}
         </div>
       ) : (
-        <AssetTable assets={assets} />
+        <AssetTable assets={assets} dateFormat={preferences.date_format} />
       )}
     </div>
   );

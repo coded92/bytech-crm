@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { getCompanySettings } from "@/lib/company/get-company-settings";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate } from "@/lib/utils/format-date";
+import { formatUserDate } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -63,6 +65,8 @@ export default async function PrintInvoicePage({
     notFound();
   }
 
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
   const settings = await getCompanySettings();
 
@@ -101,7 +105,8 @@ export default async function PrintInvoicePage({
   const quotationItems = (quotationItemsData ?? []) as QuotationItemRow[];
   const billingPeriod = formatBillingPeriod(
     invoice.billing_period_start,
-    invoice.billing_period_end
+    invoice.billing_period_end,
+    preferences
   );
   const invoiceTypeLabel = invoice.invoice_type.replaceAll("_", " ");
   const paymentReference = invoice.reference || invoice.invoice_number;
@@ -118,7 +123,7 @@ export default async function PrintInvoicePage({
               {formatCurrency(invoice.balance)}
             </p>
             <p className="mt-2 text-sm text-slate-600">
-              Due {formatDate(invoice.due_date)}
+              Due {formatUserDate(invoice.due_date, preferences)}
             </p>
           </div>
 
@@ -163,11 +168,11 @@ export default async function PrintInvoicePage({
               <DocumentInfoRow label="Invoice No." value={invoice.invoice_number} />
               <DocumentInfoRow
                 label="Invoice Date"
-                value={formatDate(invoice.created_at)}
+                value={formatUserDate(invoice.created_at, preferences)}
               />
               <DocumentInfoRow
                 label="Payment Due"
-                value={formatDate(invoice.due_date)}
+                value={formatUserDate(invoice.due_date, preferences)}
               />
               <DocumentInfoRow
                 label="Quotation Ref"
@@ -295,17 +300,21 @@ function getInvoiceStatusTone(status: InvoiceRow["status"]) {
   return "neutral";
 }
 
-function formatBillingPeriod(start: string | null, end: string | null) {
+function formatBillingPeriod(
+  start: string | null,
+  end: string | null,
+  preferences: Parameters<typeof formatUserDate>[1]
+) {
   if (start && end) {
-    return `${formatDate(start)} - ${formatDate(end)}`;
+    return `${formatUserDate(start, preferences)} - ${formatUserDate(end, preferences)}`;
   }
 
   if (start) {
-    return `From ${formatDate(start)}`;
+    return `From ${formatUserDate(start, preferences)}`;
   }
 
   if (end) {
-    return `Until ${formatDate(end)}`;
+    return `Until ${formatUserDate(end, preferences)}`;
   }
 
   return "-";

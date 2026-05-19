@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatDate, formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDate, formatUserDateTime } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 
 type ReportRow = {
   id: string;
@@ -15,7 +16,13 @@ type ReportRow = {
   } | null;
 };
 
-export function ReportTable({ reports }: { reports: ReportRow[] }) {
+export function ReportTable({
+  reports,
+  preferences,
+}: {
+  reports: ReportRow[];
+  preferences: Pick<UserPreferenceSnapshot, "date_format" | "time_format">;
+}) {
   if (reports.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -43,7 +50,7 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
               </p>
 
               <p className="mt-1 text-xs text-slate-500">
-                {formatDate(report.report_date)}
+                {formatUserDate(report.report_date, preferences)}
               </p>
             </div>
 
@@ -55,7 +62,7 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
               <p>Tasks: {report.tasks_completed_count}</p>
               <p>Leads: {report.leads_contacted_count}</p>
               <p>Support: {report.customers_supported_count}</p>
-              <p>Submitted: {formatDateTime(report.submitted_at)}</p>
+              <p>Submitted: {formatUserDateTime(report.submitted_at, preferences)}</p>
             </div>
 
             <div className="mt-4 flex gap-4">
@@ -117,7 +124,7 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
               {reports.map((report) => (
                 <tr key={report.id}>
                   <td className="px-4 py-4 text-sm text-slate-900">
-                    {formatDate(report.report_date)}
+                    {formatUserDate(report.report_date, preferences)}
                   </td>
 
                   <td className="px-4 py-4 text-sm text-slate-600">
@@ -139,7 +146,7 @@ export function ReportTable({ reports }: { reports: ReportRow[] }) {
                   </td>
 
                   <td className="px-4 py-4 text-sm text-slate-600">
-                    {formatDateTime(report.submitted_at)}
+                    {formatUserDateTime(report.submitted_at, preferences)}
                   </td>
 
                   <td className="px-4 py-4 text-right">

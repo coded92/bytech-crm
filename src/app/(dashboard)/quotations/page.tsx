@@ -1,17 +1,24 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { QuotationTable } from "@/components/quotations/quotation-table";
 import { Button } from "@/components/ui/button";
 
 export default async function QuotationsPage() {
-  await requireModule("quotations");
+  const profile = await requireModule("quotations");
   const supabase = await createClient();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
 
   const { data: quotations, error } = await supabase
     .from("quotations")
     .select("id, quote_number, company_name, status, total, valid_until, created_at")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -35,7 +42,10 @@ export default async function QuotationsPage() {
           Failed to load quotations: {error.message}
         </div>
       ) : (
-        <QuotationTable quotations={quotations || []} />
+        <QuotationTable
+          quotations={quotations || []}
+          dateFormat={preferences.date_format}
+        />
       )}
     </div>
   );

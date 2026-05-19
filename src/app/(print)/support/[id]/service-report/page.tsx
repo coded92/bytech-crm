@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate, formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDate, formatUserDateTime } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -58,6 +60,8 @@ export default async function ServiceReportPage({
   params,
 }: ServiceReportPageProps) {
   const { id } = await params;
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const { data: ticketData } = await supabase
@@ -196,11 +200,11 @@ export default async function ServiceReportPage({
               <DocumentInfoRow label="Issue Type" value={issueTypeLabel} />
               <DocumentInfoRow
                 label="Created At"
-                value={formatDateTime(ticket.created_at)}
+                value={formatUserDateTime(ticket.created_at, preferences)}
               />
               <DocumentInfoRow
                 label="Resolved At"
-                value={formatDateTime(ticket.resolved_at)}
+                value={formatUserDateTime(ticket.resolved_at, preferences)}
               />
               <DocumentInfoRow
                 label="Assigned Staff"
@@ -274,7 +278,7 @@ export default async function ServiceReportPage({
                       {item.repair_status.replaceAll("_", " ")}
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-600">
-                      {formatDate(item.repair_date)}
+                      {formatUserDate(item.repair_date, preferences)}
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-600">
                       {item.technician?.full_name || "-"}

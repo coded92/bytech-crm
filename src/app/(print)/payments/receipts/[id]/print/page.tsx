@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDateTime } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -58,6 +60,8 @@ export default async function PrintReceiptPage({
     notFound();
   }
 
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const { data: receiptData, error } = await supabase
@@ -120,7 +124,7 @@ export default async function PrintReceiptPage({
               {formatCurrency(receipt.amount_received)}
             </p>
             <p className="mt-2 text-sm text-slate-600">
-              Received on {formatDateTime(receipt.payment_date)}
+              Received on {formatUserDateTime(receipt.payment_date, preferences)}
             </p>
           </div>
 
@@ -169,7 +173,7 @@ export default async function PrintReceiptPage({
               />
               <DocumentInfoRow
                 label="Payment Date"
-                value={formatDateTime(receipt.payment_date)}
+                value={formatUserDateTime(receipt.payment_date, preferences)}
               />
               <DocumentInfoRow
                 label="Payment Ref"

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatDate } from "@/lib/utils/format-date";
+import { formatUserDate } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { FieldJobStatusBadge } from "@/components/field-jobs/field-job-status-badge";
 
 type FieldJobRow = {
@@ -24,7 +25,13 @@ type FieldJobRow = {
   } | null;
 };
 
-export function FieldJobTable({ jobs }: { jobs: FieldJobRow[] }) {
+export function FieldJobTable({
+  jobs,
+  dateFormat = "DD/MM/YYYY",
+}: {
+  jobs: FieldJobRow[];
+  dateFormat?: UserPreferenceSnapshot["date_format"];
+}) {
   if (jobs.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -55,7 +62,7 @@ export function FieldJobTable({ jobs }: { jobs: FieldJobRow[] }) {
               <p className="capitalize">Type: {job.job_type.replaceAll("_", " ")}</p>
               <p className="capitalize">Priority: {job.priority}</p>
               <p>Engineer: {job.assigned_engineer?.full_name || "-"}</p>
-              <p>Scheduled: {formatDate(job.scheduled_date)}</p>
+              <p>Scheduled: {formatUserDate(job.scheduled_date, { date_format: dateFormat })}</p>
             </div>
 
             <div className="mt-4 flex items-center gap-4">
@@ -129,7 +136,7 @@ export function FieldJobTable({ jobs }: { jobs: FieldJobRow[] }) {
                     {job.assigned_engineer?.full_name || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
-                    {formatDate(job.scheduled_date)}
+                    {formatUserDate(job.scheduled_date, { date_format: dateFormat })}
                   </td>
                   <td className="px-4 py-4">
                     <FieldJobStatusBadge status={job.status} />

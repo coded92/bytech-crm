@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { ProjectTable } from "@/components/projects/project-table";
 import { Button } from "@/components/ui/button";
 
 export default async function ProjectsPage() {
-    await requireModule("projects");
+  const profile = await requireModule("projects");
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data: projects, error } = await supabase
@@ -25,7 +31,8 @@ export default async function ProjectsPage() {
       customer:customers(company_name),
       project_manager:profiles!projects_project_manager_id_fkey(full_name)
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -59,7 +66,7 @@ export default async function ProjectsPage() {
           Failed to load projects: {error.message}
         </div>
       ) : (
-        <ProjectTable projects={projects || []} />
+        <ProjectTable projects={projects || []} dateFormat={preferences.date_format} />
       )}
     </div>
   );

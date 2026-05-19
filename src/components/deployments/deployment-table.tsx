@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatDate } from "@/lib/utils/format-date";
+import { formatUserDate } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { DeploymentStatusBadge } from "@/components/deployments/deployment-status-badge";
 
 type DeploymentRow = {
@@ -20,8 +21,10 @@ type DeploymentRow = {
 
 export function DeploymentTable({
   deployments,
+  dateFormat = "DD/MM/YYYY",
 }: {
   deployments: DeploymentRow[];
+  dateFormat?: UserPreferenceSnapshot["date_format"];
 }) {
   if (deployments.length === 0) {
     return (
@@ -58,8 +61,8 @@ export function DeploymentTable({
                 Type: {deployment.deployment_type.replaceAll("_", " ")}
               </p>
               <p>Terminals: {deployment.terminal_count}</p>
-              <p>Install Date: {formatDate(deployment.install_date)}</p>
-              <p>Go Live: {formatDate(deployment.go_live_date)}</p>
+              <p>Install Date: {formatUserDate(deployment.install_date, { date_format: dateFormat })}</p>
+              <p>Go Live: {formatUserDate(deployment.go_live_date, { date_format: dateFormat })}</p>
             </div>
 
             <div className="mt-4">
@@ -128,7 +131,7 @@ export function DeploymentTable({
                     <DeploymentStatusBadge status={deployment.deployment_status} />
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
-                    {formatDate(deployment.install_date)}
+                    {formatUserDate(deployment.install_date, { date_format: dateFormat })}
                   </td>
                   <td className="px-4 py-4 text-right">
                     <Link

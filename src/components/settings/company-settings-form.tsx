@@ -3,13 +3,6 @@
 import { useState, useTransition } from "react";
 import { updateCompanySettingsAction } from "@/lib/actions/company-settings";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,44 +32,35 @@ export function CompanySettingsForm({
   const [success, setSuccess] = useState("");
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Company Profile & Branding</CardTitle>
-        <CardDescription>
-          Update business identity and document branding details.
-        </CardDescription>
-      </CardHeader>
+    <form
+      action={(formData) => {
+        setError("");
+        setSuccess("");
 
-      <CardContent>
-        <form
-          action={(formData) => {
-            setError("");
-            setSuccess("");
+        startTransition(async () => {
+          const result = await updateCompanySettingsAction(formData);
 
-            startTransition(async () => {
-              const result = await updateCompanySettingsAction(formData);
+          if (result?.error) {
+            setError(result.error);
+            return;
+          }
 
-              if (result?.error) {
-                setError(result.error);
-                return;
-              }
-
-              setSuccess("Company settings updated successfully.");
-            });
-          }}
-          className="space-y-6"
-        >
-          <fieldset disabled={isPending} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="company_name">Company Name</Label>
-                <Input
-                  id="company_name"
-                  name="company_name"
-                  defaultValue={initialValues.company_name}
-                  required
-                />
-              </div>
+          setSuccess("Company settings updated successfully.");
+        });
+      }}
+      className="space-y-6"
+    >
+      <fieldset disabled={isPending} className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="company_name">Company Name</Label>
+            <Input
+              id="company_name"
+              name="company_name"
+              defaultValue={initialValues.company_name}
+              required
+            />
+          </div>
 
               <div className="space-y-2">
                 <Label htmlFor="brand_name">Brand Name</Label>
@@ -193,12 +177,10 @@ export function CompanySettingsForm({
               </div>
             ) : null}
 
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving..." : "Save Settings"}
-            </Button>
-          </fieldset>
-        </form>
-      </CardContent>
-    </Card>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving..." : "Save Settings"}
+        </Button>
+      </fieldset>
+    </form>
   );
 }

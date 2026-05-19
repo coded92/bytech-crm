@@ -30,8 +30,8 @@ type ActivityItem = {
 export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
   if (activities.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
-        <Bell className="mx-auto h-6 w-6 text-slate-300" />
+      <div className="rounded-3xl border border-dashed border-indigo-200 bg-white/80 p-8 text-center shadow-sm shadow-indigo-50">
+        <Bell className="mx-auto h-6 w-6 text-violet-300" />
         <p className="mt-3 text-sm font-medium text-slate-900">
           No recent activity
         </p>
@@ -43,13 +43,13 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {activities.map((activity) => {
         const meta = getActivityMeta(activity.entity_type, activity.action);
         const Icon = meta.icon;
         const href = getActivityHref(activity.entity_type, activity.entity_id);
         const content = (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300">
+          <div className="rounded-3xl border border-white/80 bg-white/84 p-4 shadow-sm shadow-indigo-100/50 transition hover:border-indigo-100 hover:bg-white">
             <div className="flex gap-3">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${meta.iconClass}`}>
                 <Icon className="h-4 w-4" />

@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
-import { formatDate } from "@/lib/utils/format-date";
+import { formatUserDate } from "@/lib/preferences/format";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { Button } from "@/components/ui/button";
 
 type RestockRow = {
@@ -16,7 +20,9 @@ type RestockRow = {
 };
 
 export default async function RestockingPage() {
-  await requireModule("restocking");
+  const profile = await requireModule("restocking");
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -29,7 +35,8 @@ export default async function RestockingPage() {
       total_amount,
       supplier:suppliers(company_name)
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   const orders = (data ?? []) as RestockRow[];
 
@@ -68,7 +75,8 @@ export default async function RestockingPage() {
             >
               <p className="font-medium text-slate-900">{order.restock_number}</p>
               <p className="mt-1 text-sm text-slate-500">
-                {order.supplier?.company_name || "-"} · {order.status} · {formatDate(order.order_date)}
+                {order.supplier?.company_name || "-"} · {order.status} ·{" "}
+                {formatUserDate(order.order_date, preferences)}
               </p>
             </Link>
           ))}

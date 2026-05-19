@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate } from "@/lib/utils/format-date";
+import { formatUserDate } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -57,6 +59,8 @@ export default async function PrintQuotationPage({
     notFound();
   }
 
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const [
@@ -98,7 +102,7 @@ export default async function PrintQuotationPage({
 
   const preparedBy = preparedByData as PreparedByRow | null;
   const statusLabel = quotation.status.replaceAll("_", " ");
-  const validUntil = formatDate(quotation.valid_until);
+  const validUntil = formatUserDate(quotation.valid_until, preferences);
 
   return (
     <DocumentShell title="Quotation" documentNumber={quotation.quote_number}>
@@ -154,7 +158,7 @@ export default async function PrintQuotationPage({
               <DocumentInfoRow label="Quote No." value={quotation.quote_number} />
               <DocumentInfoRow
                 label="Quote Date"
-                value={formatDate(quotation.created_at)}
+                value={formatUserDate(quotation.created_at, preferences)}
               />
               <DocumentInfoRow label="Valid Until" value={validUntil} />
               <DocumentInfoRow label="Status" value={statusLabel} />

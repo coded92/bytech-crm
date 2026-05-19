@@ -2,6 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/require-profile";
 import { requireModule } from "@/lib/auth/require-module";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { DeploymentTable } from "@/components/deployments/deployment-table";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +24,8 @@ type DeploymentRow = {
 export default async function DeploymentsPage() {
   await requireModule("deployments");
   const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -35,7 +41,8 @@ export default async function DeploymentsPage() {
       customer:customers(company_name),
       branch:customer_branches(branch_name)
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   const deployments = (data ?? []) as DeploymentRow[];
 
@@ -63,7 +70,10 @@ export default async function DeploymentsPage() {
           Failed to load deployments: {error.message}
         </div>
       ) : (
-        <DeploymentTable deployments={deployments} />
+        <DeploymentTable
+          deployments={deployments}
+          dateFormat={preferences.date_format}
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Users,
+  UsersRound,
   FileText,
   Building2,
   CheckSquare,
@@ -40,7 +41,7 @@ export const navItems = [
   { href: "/suppliers", label: "Suppliers", icon: Truck, module: "suppliers" },
   { href: "/restocking", label: "Restocking", icon: ShoppingCart, module: "restocking" },
   { href: "/suppliers/payables", label: "Supplier Payables", icon: Truck, module: "supplier_payables" },
-  { href: "/users", label: "Users", icon: Users, module: "users", adminOnly: true },
+  { href: "/team-management", label: "Team Management", icon: UsersRound, module: "users", adminOnly: true },
   { href: "/settings/company", label: "Settings", icon: Settings, module: "settings", adminOnly: true },
   { href: "/audit-logs", label: "Audit Logs", icon: ShieldCheck, module: "audit_logs", adminOnly: true },
 ];

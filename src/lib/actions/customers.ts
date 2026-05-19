@@ -81,9 +81,11 @@ export async function createCustomerAction(
   const contactPerson = String(formData.get("contact_person") || "").trim();
   const email = String(formData.get("email") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
+  const alternatePhone = String(formData.get("alternate_phone") || "").trim();
   const address = String(formData.get("address") || "").trim();
   const city = String(formData.get("city") || "").trim();
   const state = String(formData.get("state") || "").trim();
+  const industry = String(formData.get("industry") || "").trim();
   const businessType = String(formData.get("business_type") || "").trim();
   const planType = String(formData.get("plan_type") || "").trim();
   const billingCycle = String(formData.get("billing_cycle") || "").trim();
@@ -91,6 +93,9 @@ export async function createCustomerAction(
   const setupFee = Number(formData.get("setup_fee") || 0);
   const status = String(formData.get("status") || "active").trim();
   const notes = String(formData.get("notes") || "").trim();
+  const onboardingDate = String(formData.get("onboarding_date") || "").trim();
+  const goLiveDate = String(formData.get("go_live_date") || "").trim();
+  const accountManagerId = String(formData.get("account_manager_id") || "").trim();
 
   if (!companyName) {
     return { error: "Company name is required" };
@@ -103,14 +108,19 @@ export async function createCustomerAction(
       contact_person: contactPerson || null,
       email: email || null,
       phone: phone || null,
+      alternate_phone: alternatePhone || null,
       address: address || null,
       city: city || null,
       state: state || null,
+      industry: industry || null,
       business_type: businessType || null,
       plan_type: planType || null,
       billing_cycle: billingCycle || null,
       subscription_amount: subscriptionAmount || 0,
       setup_fee: setupFee || 0,
+      onboarding_date: onboardingDate || null,
+      go_live_date: goLiveDate || null,
+      account_manager_id: accountManagerId || null,
       status: status || "active",
       notes: notes || null,
       created_by: user.id,
@@ -213,9 +223,11 @@ export async function updateCustomerAction(
   const contactPerson = String(formData.get("contact_person") || "").trim();
   const email = String(formData.get("email") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
+  const alternatePhone = String(formData.get("alternate_phone") || "").trim();
   const address = String(formData.get("address") || "").trim();
   const city = String(formData.get("city") || "").trim();
   const state = String(formData.get("state") || "").trim();
+  const industry = String(formData.get("industry") || "").trim();
   const businessType = String(formData.get("business_type") || "").trim();
   const planType = String(formData.get("plan_type") || "").trim();
   const billingCycle = String(formData.get("billing_cycle") || "").trim();
@@ -223,6 +235,9 @@ export async function updateCustomerAction(
   const setupFee = Number(formData.get("setup_fee") || 0);
   const status = String(formData.get("status") || "active").trim();
   const notes = String(formData.get("notes") || "").trim();
+  const onboardingDate = String(formData.get("onboarding_date") || "").trim();
+  const goLiveDate = String(formData.get("go_live_date") || "").trim();
+  const accountManagerId = String(formData.get("account_manager_id") || "").trim();
 
   if (!companyName) {
     return { error: "Company name is required" };
@@ -235,14 +250,19 @@ export async function updateCustomerAction(
       contact_person: contactPerson || null,
       email: email || null,
       phone: phone || null,
+      alternate_phone: alternatePhone || null,
       address: address || null,
       city: city || null,
       state: state || null,
+      industry: industry || null,
       business_type: businessType || null,
       plan_type: planType || null,
       billing_cycle: billingCycle || null,
       subscription_amount: subscriptionAmount || 0,
       setup_fee: setupFee || 0,
+      onboarding_date: onboardingDate || null,
+      go_live_date: goLiveDate || null,
+      account_manager_id: accountManagerId || null,
       status: status || "active",
       notes: notes || null,
     })

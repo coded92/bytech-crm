@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { formatUserDate } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate } from "@/lib/utils/format-date";
 
 type ExpenseRow = {
   id: string;
@@ -18,7 +19,13 @@ type ExpenseRow = {
   notes: string | null;
 };
 
-export function ExpenseTable({ expenses }: { expenses: ExpenseRow[] }) {
+export function ExpenseTable({
+  expenses,
+  dateFormat = "DD/MM/YYYY",
+}: {
+  expenses: ExpenseRow[];
+  dateFormat?: UserPreferenceSnapshot["date_format"];
+}) {
   if (expenses.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -51,7 +58,7 @@ export function ExpenseTable({ expenses }: { expenses: ExpenseRow[] }) {
             </div>
 
             <div className="mt-4 space-y-2 text-sm text-slate-600">
-              <p>Date: {formatDate(expense.expense_date)}</p>
+              <p>Date: {formatUserDate(expense.expense_date, { date_format: dateFormat })}</p>
               <p>Notes: {expense.notes || "-"}</p>
             </div>
 
@@ -106,7 +113,7 @@ export function ExpenseTable({ expenses }: { expenses: ExpenseRow[] }) {
                     {formatCurrency(expense.amount)}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
-                    {formatDate(expense.expense_date)}
+                    {formatUserDate(expense.expense_date, { date_format: dateFormat })}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {expense.notes || "-"}

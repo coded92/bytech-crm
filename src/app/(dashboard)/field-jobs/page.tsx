@@ -2,6 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { FieldJobTable } from "@/components/field-jobs/field-job-table";
 import { Button } from "@/components/ui/button";
 
@@ -30,6 +34,8 @@ type FieldJobRow = {
 export default async function FieldJobsPage() {
   await requireModule("field-jobs");
   const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   let query = supabase
@@ -51,7 +57,7 @@ export default async function FieldJobsPage() {
     query = query.eq("assigned_engineer_id", profile.id);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.limit(itemsPerPage);
   const jobs = (data ?? []) as FieldJobRow[];
 
   return (
@@ -76,7 +82,7 @@ export default async function FieldJobsPage() {
           Failed to load field jobs: {error.message}
         </div>
       ) : (
-        <FieldJobTable jobs={jobs} />
+        <FieldJobTable jobs={jobs} dateFormat={preferences.date_format} />
       )}
     </div>
   );

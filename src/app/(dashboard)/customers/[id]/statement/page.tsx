@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate, formatDateTime } from "@/lib/utils/format-date";
+import { getCurrentWeekRange } from "@/lib/preferences/date-ranges";
+import { formatUserDate, formatUserDateTime } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { ExportCsvButton } from "@/components/shared/export-csv-button";
 import { DateRangeFilter } from "@/components/shared/date-range-filter";
 import { Button } from "@/components/ui/button";
@@ -50,6 +53,8 @@ export default async function CustomerStatementPage({
 }: CustomerStatementPageProps) {
   const { id } = await params;
   const { from, to } = await searchParams;
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const { data: customerData } = await supabase
@@ -123,8 +128,8 @@ export default async function CustomerStatementPage({
     ...invoices.map((invoice) => [
       "Invoice",
       invoice.invoice_number,
-      formatDateTime(invoice.created_at),
-      formatDate(invoice.due_date),
+      formatUserDateTime(invoice.created_at, preferences),
+      formatUserDate(invoice.due_date, preferences),
       invoice.status,
       invoice.amount,
       invoice.amount_paid,
@@ -133,7 +138,7 @@ export default async function CustomerStatementPage({
     ...receipts.map((receipt) => [
       "Receipt",
       receipt.receipt_number,
-      formatDateTime(receipt.payment_date),
+      formatUserDateTime(receipt.payment_date, preferences),
       "",
       receipt.payment_method || "",
       receipt.amount_received,
@@ -143,6 +148,7 @@ export default async function CustomerStatementPage({
   ];
 
   const basePath = `/customers/${customer.id}/statement`;
+  const currentWeekRange = getCurrentWeekRange(preferences);
 
   return (
     <div className="space-y-6">
@@ -178,7 +184,12 @@ export default async function CustomerStatementPage({
         </div>
       </div>
 
-      <DateRangeFilter actionPath={basePath} from={from} to={to} />
+      <DateRangeFilter
+        actionPath={basePath}
+        from={from}
+        to={to}
+        currentWeekRange={currentWeekRange}
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -251,10 +262,10 @@ export default async function CustomerStatementPage({
                         {invoice.invoice_number}
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-600">
-                        {formatDateTime(invoice.created_at)}
+                        {formatUserDateTime(invoice.created_at, preferences)}
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-600">
-                        {formatDate(invoice.due_date)}
+                        {formatUserDate(invoice.due_date, preferences)}
                       </td>
                       <td className="px-4 py-4 text-sm capitalize text-slate-600">
                         {invoice.status}
@@ -316,7 +327,7 @@ export default async function CustomerStatementPage({
                         {receipt.invoice?.invoice_number || "-"}
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-600">
-                        {formatDateTime(receipt.payment_date)}
+                        {formatUserDateTime(receipt.payment_date, preferences)}
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-600">
                         {receipt.payment_method || "-"}

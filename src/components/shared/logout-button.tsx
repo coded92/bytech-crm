@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { LogOut, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { signOutAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 
 export function LogoutButton() {
@@ -10,9 +10,7 @@ export function LogoutButton() {
 
   async function handleLogout() {
     startTransition(async () => {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      window.location.href = "/login";
+      await signOutAction();
     });
   }
 
@@ -22,7 +20,7 @@ export function LogoutButton() {
       size="sm"
       onClick={handleLogout}
       disabled={isPending}
-      className="gap-2 rounded-xl border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+      className="h-11 gap-2 rounded-2xl border-white/80 bg-white/92 px-3 text-sm text-slate-700 shadow-sm shadow-indigo-100 hover:bg-white"
     >
       {isPending ? (
         <Loader2 className="h-4 w-4 animate-spin" />

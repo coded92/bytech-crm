@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatDate } from "@/lib/utils/format-date";
+import { formatUserDate } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
 import { AssetConditionBadge } from "@/components/assets/asset-condition-badge";
 
@@ -19,7 +20,13 @@ type AssetRow = {
   } | null;
 };
 
-export function AssetTable({ assets }: { assets: AssetRow[] }) {
+export function AssetTable({
+  assets,
+  dateFormat = "DD/MM/YYYY",
+}: {
+  assets: AssetRow[];
+  dateFormat?: UserPreferenceSnapshot["date_format"];
+}) {
   if (assets.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -58,7 +65,7 @@ export function AssetTable({ assets }: { assets: AssetRow[] }) {
               <div>
                 Condition: <AssetConditionBadge condition={asset.condition} />
               </div>
-              <p>Purchase Date: {formatDate(asset.purchase_date)}</p>
+              <p>Purchase Date: {formatUserDate(asset.purchase_date, { date_format: dateFormat })}</p>
             </div>
 
             <div className="mt-4">

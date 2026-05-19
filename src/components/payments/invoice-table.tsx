@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { formatUserDate } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate } from "@/lib/utils/format-date";
 import { InvoiceStatusBadge } from "@/components/payments/invoice-status-badge";
 
 type InvoiceRow = {
@@ -17,7 +18,13 @@ type InvoiceRow = {
   } | null;
 };
 
-export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
+export function InvoiceTable({
+  invoices,
+  dateFormat = "DD/MM/YYYY",
+}: {
+  invoices: InvoiceRow[];
+  dateFormat?: UserPreferenceSnapshot["date_format"];
+}) {
   if (invoices.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -53,7 +60,7 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
               </p>
               <p>Amount: {formatCurrency(invoice.amount)}</p>
               <p>Balance: {formatCurrency(invoice.balance)}</p>
-              <p>Due Date: {formatDate(invoice.due_date)}</p>
+              <p>Due Date: {formatUserDate(invoice.due_date, { date_format: dateFormat })}</p>
             </div>
 
             <div className="mt-4">
@@ -125,7 +132,7 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
                     {formatCurrency(invoice.balance)}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
-                    {formatDate(invoice.due_date)}
+                    {formatUserDate(invoice.due_date, { date_format: dateFormat })}
                   </td>
                   <td className="px-4 py-4">
                     <InvoiceStatusBadge status={invoice.status} />

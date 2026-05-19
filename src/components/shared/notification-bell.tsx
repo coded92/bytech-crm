@@ -54,10 +54,12 @@ export async function NotificationBell() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
+          className="relative inline-flex size-11 items-center justify-center rounded-2xl border border-white/80 bg-white/92 shadow-sm shadow-indigo-100 outline-none transition hover:bg-white focus-visible:ring-2 focus-visible:ring-[#4F46E5]/30"
           aria-label="Open notifications"
+          data-tooltip="Notifications"
+          data-tooltip-side="bottom"
         >
-          <Bell className="h-4 w-4 text-slate-700" />
+          <Bell className="size-4 text-[#111827]" />
           {unreadCount > 0 ? (
             <Badge className="absolute -right-2 -top-2 min-w-5 px-1.5 py-0 text-[10px]">
               {unreadCount > 9 ? "9+" : unreadCount}
@@ -66,7 +68,7 @@ export async function NotificationBell() {
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-[340px] p-2">
+      <DropdownMenuContent align="end" className="w-[min(340px,calc(100vw-24px))] rounded-3xl border-white/80 p-2 shadow-xl shadow-indigo-200/60">
         <DropdownMenuLabel className="flex items-center justify-between px-2 py-2">
           <span className="font-semibold text-slate-900">Notifications</span>
           <span className="text-xs font-normal text-slate-500">
@@ -88,7 +90,7 @@ export async function NotificationBell() {
                   notification.related_table,
                   notification.related_id
                 )}
-                className="flex gap-3 rounded-lg px-3 py-3"
+                className="flex min-w-0 gap-3 rounded-xl px-3 py-3"
               >
                 <Circle
                   className={`mt-1 h-2.5 w-2.5 shrink-0 ${

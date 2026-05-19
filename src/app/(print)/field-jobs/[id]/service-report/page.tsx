@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate, formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDate, formatUserDateTime } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -83,6 +85,8 @@ export default async function FieldServiceReportPage({
   params,
 }: FieldServiceReportPageProps) {
   const { id } = await params;
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const [
@@ -239,7 +243,7 @@ export default async function FieldServiceReportPage({
               <DocumentInfoRow label="Status" value={statusLabel} />
               <DocumentInfoRow
                 label="Scheduled"
-                value={formatDate(job.scheduled_date)}
+                value={formatUserDate(job.scheduled_date, preferences)}
               />
             </div>
           </div>
@@ -250,32 +254,32 @@ export default async function FieldServiceReportPage({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
               <DocumentInfoRow
                 label="Started"
-                value={formatDateTime(job.started_at)}
+                value={formatUserDateTime(job.started_at, preferences)}
               />
               <DocumentInfoRow
                 label="Completed"
-                value={formatDateTime(job.completed_at)}
+                value={formatUserDateTime(job.completed_at, preferences)}
               />
               <DocumentInfoRow
                 label="Checked In"
-                value={formatDateTime(job.checked_in_at)}
+                value={formatUserDateTime(job.checked_in_at, preferences)}
               />
               <DocumentInfoRow
                 label="Checked Out"
-                value={formatDateTime(job.checked_out_at)}
+                value={formatUserDateTime(job.checked_out_at, preferences)}
               />
               <DocumentInfoRow
                 label="Work Started"
-                value={formatDateTime(job.work_started_at)}
+                value={formatUserDateTime(job.work_started_at, preferences)}
               />
               <DocumentInfoRow
                 label="Work Completed"
-                value={formatDateTime(job.work_completed_at)}
+                value={formatUserDateTime(job.work_completed_at, preferences)}
               />
               <DocumentInfoRow label="Service Window" value={serviceWindow} />
               <DocumentInfoRow
                 label="Report Created"
-                value={formatDateTime(job.created_at)}
+                value={formatUserDateTime(job.created_at, preferences)}
               />
             </div>
           </div>

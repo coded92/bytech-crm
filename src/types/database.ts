@@ -6,6 +6,140 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export type NotificationChannel = "email" | "in_app" | "sms";
+export type NotificationEventType =
+  | "customer_updates"
+  | "customer_activity"
+  | "project_updates"
+  | "task_assignments"
+  | "invoice_alerts"
+  | "payment_alerts"
+  | "field_job_updates"
+  | "inventory_alerts"
+  | "support_updates"
+  | "support_tickets"
+  | "system_alerts"
+  | "system_maintenance"
+  | "critical_alerts"
+  | "mentions_comments"
+  | "marketing_news";
+export type NotificationDigestFrequency = "immediate" | "daily" | "weekly";
+export type NotificationEmailFrequency = "instant" | "daily" | "weekly";
+export type NotificationEmailFormat = "html" | "plain_text";
+export type SmsDeliveryPriority = "normal" | "high" | "critical";
+export type PhoneVerificationStatus = "unverified" | "pending" | "verified";
+export type UserActiveSessionStatus =
+  | "active"
+  | "signed_out"
+  | "expired"
+  | "revoked";
+export type UserTrustedDeviceStatus =
+  | "trusted"
+  | "unrecognized"
+  | "review"
+  | "blocked";
+export type UserSecurityAlertFrequency = "instant" | "daily" | "weekly";
+export type UserSecurityAlertTone = "default" | "subtle" | "urgent";
+export type UserTwoFactorStatus =
+  | "not_configured"
+  | "pending"
+  | "enabled"
+  | "disabled";
+export type UserRecoveryContactType = "email" | "phone";
+export type UserRecoveryContactStatus = "unverified" | "pending" | "verified";
+export type UserSecurityEventType =
+  | "login"
+  | "logout"
+  | "password_reset"
+  | "password_changed"
+  | "profile_updated"
+  | "avatar_updated"
+  | "preferences_updated"
+  | "notification_preferences_updated"
+  | "general_settings_updated"
+  | "company_settings_updated"
+  | "security_settings_updated"
+  | "security_questions_updated"
+  | "recovery_contact_updated"
+  | "two_factor_enabled"
+  | "two_factor_disabled"
+  | "backup_codes_generated"
+  | "trusted_device_updated"
+  | "login_alert_sent"
+  | "unusual_signin_detected"
+  | "document_branding_settings_updated"
+  | "role_created"
+  | "role_updated"
+  | "role_deactivated"
+  | "role_permission_updated"
+  | "permission_set_created"
+  | "permission_set_updated"
+  | "team_created"
+  | "team_updated"
+  | "team_member_updated"
+  | "invitation_created"
+  | "invitation_updated"
+  | "team_management_settings_updated";
+export type CrmRoleType = "system" | "custom";
+export type CrmAccessLevel =
+  | "full_access"
+  | "edit"
+  | "view_only"
+  | "no_access"
+  | "not_applicable";
+export type TeamDepartment =
+  | "sales"
+  | "operations"
+  | "support"
+  | "engineering"
+  | "inventory"
+  | "finance"
+  | "hr";
+export type TeamMemberRole = "lead" | "member";
+export type UserInvitationDeliveryMethod = "email" | "link";
+export type UserInvitationStatus =
+  | "pending"
+  | "accepted"
+  | "expired"
+  | "revoked";
+export type TeamAutoAssignDepartmentMode =
+  | "manual"
+  | "profile_department"
+  | "email_domain";
+export type TeamApprovalWorkflow =
+  | "disabled"
+  | "project_invoice_approvals"
+  | "all_financial_approvals"
+  | "custom";
+export type TeamApprovalChain =
+  | "manager"
+  | "department_head_admin"
+  | "manager_department_head_admin"
+  | "admin_only";
+export type TeamDefaultMemberView = "card" | "table" | "compact";
+export type TeamSettingsDateFormat =
+  | "DD MMM YYYY"
+  | "MM/DD/YYYY"
+  | "DD/MM/YYYY"
+  | "YYYY-MM-DD";
+export type TeamSalaryVisibility =
+  | "admins_only"
+  | "admins_and_hr"
+  | "admins_and_managers"
+  | "hidden";
+export type TeamDepartmentVisibility =
+  | "all_managers"
+  | "same_department"
+  | "admins_only";
+export type TeamDataExportPermission =
+  | "admins_only"
+  | "admins_and_managers"
+  | "disabled";
+export type TeamIntegrationStatus =
+  | "not_configured"
+  | "configured"
+  | "disabled";
+
 export interface Database {
   public: {
     Tables: {
@@ -100,6 +234,1039 @@ export interface Database {
           username?: string | null;
           force_password_change?: boolean;
           allowed_modules?: string[];
+        };
+      };
+
+      crm_roles: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          description: string | null;
+          role_type: CrmRoleType;
+          role_level: number;
+          parent_role_id: string | null;
+          icon: string;
+          color: string;
+          is_active: boolean;
+          is_system: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          description?: string | null;
+          role_type?: CrmRoleType;
+          role_level?: number;
+          parent_role_id?: string | null;
+          icon?: string;
+          color?: string;
+          is_active?: boolean;
+          is_system?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          slug?: string;
+          description?: string | null;
+          role_type?: CrmRoleType;
+          role_level?: number;
+          parent_role_id?: string | null;
+          icon?: string;
+          color?: string;
+          is_active?: boolean;
+          is_system?: boolean;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+      };
+
+      profile_roles: {
+        Row: {
+          id: string;
+          profile_id: string;
+          role_id: string;
+          is_primary: boolean;
+          assigned_by: string | null;
+          assigned_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          role_id: string;
+          is_primary?: boolean;
+          assigned_by?: string | null;
+          assigned_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          profile_id?: string;
+          role_id?: string;
+          is_primary?: boolean;
+          assigned_by?: string | null;
+          assigned_at?: string;
+        };
+      };
+
+      teams: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          description: string | null;
+          department: TeamDepartment | null;
+          icon: string;
+          color: string;
+          team_lead_id: string | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          description?: string | null;
+          department?: TeamDepartment | null;
+          icon?: string;
+          color?: string;
+          team_lead_id?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          slug?: string;
+          description?: string | null;
+          department?: TeamDepartment | null;
+          icon?: string;
+          color?: string;
+          team_lead_id?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+      };
+
+      team_members: {
+        Row: {
+          id: string;
+          team_id: string;
+          profile_id: string;
+          team_role: TeamMemberRole;
+          added_by: string | null;
+          joined_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          profile_id: string;
+          team_role?: TeamMemberRole;
+          added_by?: string | null;
+          joined_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          team_id?: string;
+          profile_id?: string;
+          team_role?: TeamMemberRole;
+          added_by?: string | null;
+          joined_at?: string;
+        };
+      };
+
+      crm_permission_sets: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          description: string | null;
+          icon: string;
+          color: string;
+          is_system: boolean;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          description?: string | null;
+          icon?: string;
+          color?: string;
+          is_system?: boolean;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          slug?: string;
+          description?: string | null;
+          icon?: string;
+          color?: string;
+          is_system?: boolean;
+          is_active?: boolean;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+      };
+
+      crm_permission_set_rules: {
+        Row: {
+          id: string;
+          permission_set_id: string;
+          module_name: string;
+          access_level: CrmAccessLevel;
+          can_read: boolean;
+          can_create: boolean;
+          can_update: boolean;
+          can_delete: boolean;
+          can_approve: boolean;
+          can_export: boolean;
+          can_admin: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          permission_set_id: string;
+          module_name: string;
+          access_level?: CrmAccessLevel;
+          can_read?: boolean;
+          can_create?: boolean;
+          can_update?: boolean;
+          can_delete?: boolean;
+          can_approve?: boolean;
+          can_export?: boolean;
+          can_admin?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          permission_set_id?: string;
+          module_name?: string;
+          access_level?: CrmAccessLevel;
+          can_read?: boolean;
+          can_create?: boolean;
+          can_update?: boolean;
+          can_delete?: boolean;
+          can_approve?: boolean;
+          can_export?: boolean;
+          can_admin?: boolean;
+          updated_at?: string;
+        };
+      };
+
+      crm_role_permission_sets: {
+        Row: {
+          role_id: string;
+          permission_set_id: string;
+          assigned_by: string | null;
+          assigned_at: string;
+        };
+        Insert: {
+          role_id: string;
+          permission_set_id: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
+        };
+        Update: {
+          role_id?: string;
+          permission_set_id?: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
+        };
+      };
+
+      crm_role_permissions: {
+        Row: {
+          id: string;
+          role_id: string;
+          module_name: string;
+          access_level: CrmAccessLevel;
+          can_read: boolean;
+          can_create: boolean;
+          can_update: boolean;
+          can_delete: boolean;
+          can_approve: boolean;
+          can_export: boolean;
+          can_admin: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          role_id: string;
+          module_name: string;
+          access_level?: CrmAccessLevel;
+          can_read?: boolean;
+          can_create?: boolean;
+          can_update?: boolean;
+          can_delete?: boolean;
+          can_approve?: boolean;
+          can_export?: boolean;
+          can_admin?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          role_id?: string;
+          module_name?: string;
+          access_level?: CrmAccessLevel;
+          can_read?: boolean;
+          can_create?: boolean;
+          can_update?: boolean;
+          can_delete?: boolean;
+          can_approve?: boolean;
+          can_export?: boolean;
+          can_admin?: boolean;
+          updated_at?: string;
+        };
+      };
+
+      user_invitations: {
+        Row: {
+          id: string;
+          email: string;
+          full_name: string;
+          department: TeamDepartment | null;
+          job_title: string | null;
+          role_id: string | null;
+          team_id: string | null;
+          invite_token_hash: string | null;
+          delivery_method: UserInvitationDeliveryMethod;
+          status: UserInvitationStatus;
+          invited_by: string | null;
+          accepted_by: string | null;
+          invited_at: string;
+          accepted_at: string | null;
+          expires_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          full_name: string;
+          department?: TeamDepartment | null;
+          job_title?: string | null;
+          role_id?: string | null;
+          team_id?: string | null;
+          invite_token_hash?: string | null;
+          delivery_method?: UserInvitationDeliveryMethod;
+          status?: UserInvitationStatus;
+          invited_by?: string | null;
+          accepted_by?: string | null;
+          invited_at?: string;
+          accepted_at?: string | null;
+          expires_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          email?: string;
+          full_name?: string;
+          department?: TeamDepartment | null;
+          job_title?: string | null;
+          role_id?: string | null;
+          team_id?: string | null;
+          invite_token_hash?: string | null;
+          delivery_method?: UserInvitationDeliveryMethod;
+          status?: UserInvitationStatus;
+          invited_by?: string | null;
+          accepted_by?: string | null;
+          invited_at?: string;
+          accepted_at?: string | null;
+          expires_at?: string;
+          updated_at?: string;
+        };
+      };
+
+      team_management_settings: {
+        Row: {
+          id: string;
+          default_role_id: string | null;
+          auto_assign_department_mode: TeamAutoAssignDepartmentMode;
+          invite_approval_enabled: boolean;
+          team_timezone: string;
+          allow_managers_invite_members: boolean;
+          allow_team_leads_create_projects: boolean;
+          restrict_data_access_by_department: boolean;
+          role_inheritance_enabled: boolean;
+          send_welcome_email: boolean;
+          require_profile_completion: boolean;
+          onboarding_checklist_enabled: boolean;
+          default_onboarding_department: TeamDepartment | null;
+          approval_workflow: TeamApprovalWorkflow;
+          default_approval_chain: TeamApprovalChain;
+          escalation_hours: number;
+          auto_approve_admins: boolean;
+          new_member_invite_alerts: boolean;
+          role_change_alerts: boolean;
+          department_assignment_alerts: boolean;
+          member_deactivation_alerts: boolean;
+          default_member_view: TeamDefaultMemberView;
+          items_per_page: 10 | 20 | 25 | 50 | 100;
+          date_format: TeamSettingsDateFormat;
+          show_online_status: boolean;
+          salary_visibility: TeamSalaryVisibility;
+          department_visibility: TeamDepartmentVisibility;
+          hide_inactive_members: boolean;
+          data_export_permission: TeamDataExportPermission;
+          directory_sync_status: TeamIntegrationStatus;
+          sso_status: TeamIntegrationStatus;
+          webhooks_status: TeamIntegrationStatus;
+          api_access_status: TeamIntegrationStatus;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          default_role_id?: string | null;
+          auto_assign_department_mode?: TeamAutoAssignDepartmentMode;
+          invite_approval_enabled?: boolean;
+          team_timezone?: string;
+          allow_managers_invite_members?: boolean;
+          allow_team_leads_create_projects?: boolean;
+          restrict_data_access_by_department?: boolean;
+          role_inheritance_enabled?: boolean;
+          send_welcome_email?: boolean;
+          require_profile_completion?: boolean;
+          onboarding_checklist_enabled?: boolean;
+          default_onboarding_department?: TeamDepartment | null;
+          approval_workflow?: TeamApprovalWorkflow;
+          default_approval_chain?: TeamApprovalChain;
+          escalation_hours?: number;
+          auto_approve_admins?: boolean;
+          new_member_invite_alerts?: boolean;
+          role_change_alerts?: boolean;
+          department_assignment_alerts?: boolean;
+          member_deactivation_alerts?: boolean;
+          default_member_view?: TeamDefaultMemberView;
+          items_per_page?: 10 | 20 | 25 | 50 | 100;
+          date_format?: TeamSettingsDateFormat;
+          show_online_status?: boolean;
+          salary_visibility?: TeamSalaryVisibility;
+          department_visibility?: TeamDepartmentVisibility;
+          hide_inactive_members?: boolean;
+          data_export_permission?: TeamDataExportPermission;
+          directory_sync_status?: TeamIntegrationStatus;
+          sso_status?: TeamIntegrationStatus;
+          webhooks_status?: TeamIntegrationStatus;
+          api_access_status?: TeamIntegrationStatus;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          default_role_id?: string | null;
+          auto_assign_department_mode?: TeamAutoAssignDepartmentMode;
+          invite_approval_enabled?: boolean;
+          team_timezone?: string;
+          allow_managers_invite_members?: boolean;
+          allow_team_leads_create_projects?: boolean;
+          restrict_data_access_by_department?: boolean;
+          role_inheritance_enabled?: boolean;
+          send_welcome_email?: boolean;
+          require_profile_completion?: boolean;
+          onboarding_checklist_enabled?: boolean;
+          default_onboarding_department?: TeamDepartment | null;
+          approval_workflow?: TeamApprovalWorkflow;
+          default_approval_chain?: TeamApprovalChain;
+          escalation_hours?: number;
+          auto_approve_admins?: boolean;
+          new_member_invite_alerts?: boolean;
+          role_change_alerts?: boolean;
+          department_assignment_alerts?: boolean;
+          member_deactivation_alerts?: boolean;
+          default_member_view?: TeamDefaultMemberView;
+          items_per_page?: 10 | 20 | 25 | 50 | 100;
+          date_format?: TeamSettingsDateFormat;
+          show_online_status?: boolean;
+          salary_visibility?: TeamSalaryVisibility;
+          department_visibility?: TeamDepartmentVisibility;
+          hide_inactive_members?: boolean;
+          data_export_permission?: TeamDataExportPermission;
+          directory_sync_status?: TeamIntegrationStatus;
+          sso_status?: TeamIntegrationStatus;
+          webhooks_status?: TeamIntegrationStatus;
+          api_access_status?: TeamIntegrationStatus;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+      };
+
+      user_preferences: {
+        Row: {
+          user_id: string;
+          theme: "light" | "dark" | "system";
+          language: string;
+          timezone: string;
+          compact_mode: boolean;
+          email_notifications: boolean;
+          push_notifications: boolean;
+          default_landing_page:
+            | "dashboard"
+            | "leads"
+            | "customers"
+            | "projects"
+            | "field-jobs"
+            | "support"
+            | "inventory"
+            | "payments"
+            | "reports";
+          items_per_page: 10 | 25 | 50 | 100;
+          time_format: "12-hour" | "24-hour";
+          date_format: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          inline_editing_enabled: boolean;
+          start_of_week:
+            | "sunday"
+            | "monday"
+            | "tuesday"
+            | "wednesday"
+            | "thursday"
+            | "friday"
+            | "saturday";
+          default_view_mode: "comfortable" | "compact";
+          view_density: "comfortable" | "compact" | "condensed";
+          highlight_color: string;
+          show_avatars: boolean;
+          show_tooltips: boolean;
+          auto_save_changes: boolean;
+          show_productivity_tips: boolean;
+          confirm_before_deleting: boolean;
+          keyboard_shortcuts_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          theme?: "light" | "dark" | "system";
+          language?: string;
+          timezone?: string;
+          compact_mode?: boolean;
+          email_notifications?: boolean;
+          push_notifications?: boolean;
+          default_landing_page?:
+            | "dashboard"
+            | "leads"
+            | "customers"
+            | "projects"
+            | "field-jobs"
+            | "support"
+            | "inventory"
+            | "payments"
+            | "reports";
+          items_per_page?: 10 | 25 | 50 | 100;
+          time_format?: "12-hour" | "24-hour";
+          date_format?: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          inline_editing_enabled?: boolean;
+          start_of_week?:
+            | "sunday"
+            | "monday"
+            | "tuesday"
+            | "wednesday"
+            | "thursday"
+            | "friday"
+            | "saturday";
+          default_view_mode?: "comfortable" | "compact";
+          view_density?: "comfortable" | "compact" | "condensed";
+          highlight_color?: string;
+          show_avatars?: boolean;
+          show_tooltips?: boolean;
+          auto_save_changes?: boolean;
+          show_productivity_tips?: boolean;
+          confirm_before_deleting?: boolean;
+          keyboard_shortcuts_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          theme?: "light" | "dark" | "system";
+          language?: string;
+          timezone?: string;
+          compact_mode?: boolean;
+          email_notifications?: boolean;
+          push_notifications?: boolean;
+          default_landing_page?:
+            | "dashboard"
+            | "leads"
+            | "customers"
+            | "projects"
+            | "field-jobs"
+            | "support"
+            | "inventory"
+            | "payments"
+            | "reports";
+          items_per_page?: 10 | 25 | 50 | 100;
+          time_format?: "12-hour" | "24-hour";
+          date_format?: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          inline_editing_enabled?: boolean;
+          start_of_week?:
+            | "sunday"
+            | "monday"
+            | "tuesday"
+            | "wednesday"
+            | "thursday"
+            | "friday"
+            | "saturday";
+          default_view_mode?: "comfortable" | "compact";
+          view_density?: "comfortable" | "compact" | "condensed";
+          highlight_color?: string;
+          show_avatars?: boolean;
+          show_tooltips?: boolean;
+          auto_save_changes?: boolean;
+          show_productivity_tips?: boolean;
+          confirm_before_deleting?: boolean;
+          keyboard_shortcuts_enabled?: boolean;
+          updated_at?: string;
+        };
+      };
+
+      notification_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          channel: NotificationChannel;
+          event_type: NotificationEventType;
+          enabled: boolean;
+          digest_frequency: NotificationDigestFrequency | null;
+          quiet_hours_enabled: boolean;
+          quiet_hours_start: string | null;
+          quiet_hours_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          channel: NotificationChannel;
+          event_type: NotificationEventType;
+          enabled?: boolean;
+          digest_frequency?: NotificationDigestFrequency | null;
+          quiet_hours_enabled?: boolean;
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          channel?: NotificationChannel;
+          event_type?: NotificationEventType;
+          enabled?: boolean;
+          digest_frequency?: NotificationDigestFrequency | null;
+          quiet_hours_enabled?: boolean;
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+          updated_at?: string;
+        };
+      };
+
+      notification_channel_settings: {
+        Row: {
+          user_id: string;
+          channel: NotificationChannel;
+          email_frequency: NotificationEmailFrequency | null;
+          email_format: NotificationEmailFormat | null;
+          digest_summary_enabled: boolean;
+          include_read_items: boolean;
+          browser_notifications_enabled: boolean;
+          play_sound: boolean;
+          show_unread_count: boolean;
+          sms_delivery_priority: SmsDeliveryPriority | null;
+          quiet_hours_enabled: boolean;
+          quiet_hours_start: string | null;
+          quiet_hours_end: string | null;
+          timezone: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          channel: NotificationChannel;
+          email_frequency?: NotificationEmailFrequency | null;
+          email_format?: NotificationEmailFormat | null;
+          digest_summary_enabled?: boolean;
+          include_read_items?: boolean;
+          browser_notifications_enabled?: boolean;
+          play_sound?: boolean;
+          show_unread_count?: boolean;
+          sms_delivery_priority?: SmsDeliveryPriority | null;
+          quiet_hours_enabled?: boolean;
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+          timezone?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          email_frequency?: NotificationEmailFrequency | null;
+          email_format?: NotificationEmailFormat | null;
+          digest_summary_enabled?: boolean;
+          include_read_items?: boolean;
+          browser_notifications_enabled?: boolean;
+          play_sound?: boolean;
+          show_unread_count?: boolean;
+          sms_delivery_priority?: SmsDeliveryPriority | null;
+          quiet_hours_enabled?: boolean;
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+          timezone?: string | null;
+          updated_at?: string;
+        };
+      };
+
+      notification_phone_numbers: {
+        Row: {
+          id: string;
+          user_id: string;
+          phone_number: string;
+          label: string;
+          is_primary: boolean;
+          verification_status: PhoneVerificationStatus;
+          verified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          phone_number: string;
+          label?: string;
+          is_primary?: boolean;
+          verification_status?: PhoneVerificationStatus;
+          verified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          phone_number?: string;
+          label?: string;
+          is_primary?: boolean;
+          verification_status?: PhoneVerificationStatus;
+          verified_at?: string | null;
+          updated_at?: string;
+        };
+      };
+
+      user_security_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_type: UserSecurityEventType;
+          ip_address: string | null;
+          user_agent: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event_type: UserSecurityEventType;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: never;
+      };
+
+      user_security_settings: {
+        Row: {
+          user_id: string;
+          login_alerts_enabled: boolean;
+          alert_new_device_signins: boolean;
+          alert_new_location_signins: boolean;
+          alert_unusual_signin_attempts: boolean;
+          alert_successful_signins: boolean;
+          alert_email_enabled: boolean;
+          alert_sms_enabled: boolean;
+          alert_frequency: UserSecurityAlertFrequency;
+          alert_tone: UserSecurityAlertTone;
+          password_expiry_reminder_enabled: boolean;
+          session_timeout_minutes: number;
+          restrict_login_by_ip: boolean;
+          require_2fa_for_all_logins: boolean;
+          security_questions_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          login_alerts_enabled?: boolean;
+          alert_new_device_signins?: boolean;
+          alert_new_location_signins?: boolean;
+          alert_unusual_signin_attempts?: boolean;
+          alert_successful_signins?: boolean;
+          alert_email_enabled?: boolean;
+          alert_sms_enabled?: boolean;
+          alert_frequency?: UserSecurityAlertFrequency;
+          alert_tone?: UserSecurityAlertTone;
+          password_expiry_reminder_enabled?: boolean;
+          session_timeout_minutes?: number;
+          restrict_login_by_ip?: boolean;
+          require_2fa_for_all_logins?: boolean;
+          security_questions_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          login_alerts_enabled?: boolean;
+          alert_new_device_signins?: boolean;
+          alert_new_location_signins?: boolean;
+          alert_unusual_signin_attempts?: boolean;
+          alert_successful_signins?: boolean;
+          alert_email_enabled?: boolean;
+          alert_sms_enabled?: boolean;
+          alert_frequency?: UserSecurityAlertFrequency;
+          alert_tone?: UserSecurityAlertTone;
+          password_expiry_reminder_enabled?: boolean;
+          session_timeout_minutes?: number;
+          restrict_login_by_ip?: boolean;
+          require_2fa_for_all_logins?: boolean;
+          security_questions_enabled?: boolean;
+          updated_at?: string;
+        };
+      };
+
+      user_2fa_settings: {
+        Row: {
+          user_id: string;
+          provider: "totp";
+          status: UserTwoFactorStatus;
+          supabase_factor_id: string | null;
+          enabled_at: string | null;
+          disabled_at: string | null;
+          last_verified_at: string | null;
+          backup_codes_generated_at: string | null;
+          backup_codes_remaining: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          provider?: "totp";
+          status?: UserTwoFactorStatus;
+          supabase_factor_id?: string | null;
+          enabled_at?: string | null;
+          disabled_at?: string | null;
+          last_verified_at?: string | null;
+          backup_codes_generated_at?: string | null;
+          backup_codes_remaining?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          provider?: "totp";
+          status?: UserTwoFactorStatus;
+          supabase_factor_id?: string | null;
+          enabled_at?: string | null;
+          disabled_at?: string | null;
+          last_verified_at?: string | null;
+          backup_codes_generated_at?: string | null;
+          backup_codes_remaining?: number;
+          updated_at?: string;
+        };
+      };
+
+      user_backup_codes: {
+        Row: {
+          id: string;
+          user_id: string;
+          code_salt: string;
+          code_hash: string;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          code_salt: string;
+          code_hash: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          code_salt?: string;
+          code_hash?: string;
+          used_at?: string | null;
+        };
+      };
+
+      user_recovery_contacts: {
+        Row: {
+          id: string;
+          user_id: string;
+          contact_type: UserRecoveryContactType;
+          contact_value: string;
+          is_primary: boolean;
+          verification_status: UserRecoveryContactStatus;
+          verified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          contact_type: UserRecoveryContactType;
+          contact_value: string;
+          is_primary?: boolean;
+          verification_status?: UserRecoveryContactStatus;
+          verified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          contact_type?: UserRecoveryContactType;
+          contact_value?: string;
+          is_primary?: boolean;
+          verification_status?: UserRecoveryContactStatus;
+          verified_at?: string | null;
+          updated_at?: string;
+        };
+      };
+
+      user_security_questions: {
+        Row: {
+          id: string;
+          user_id: string;
+          position: number;
+          question: string;
+          answer_salt: string;
+          answer_hash: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          position: number;
+          question: string;
+          answer_salt: string;
+          answer_hash: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          position?: number;
+          question?: string;
+          answer_salt?: string;
+          answer_hash?: string;
+          updated_at?: string;
+        };
+      };
+
+      user_session_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_identifier: string;
+          device_type: string | null;
+          browser: string | null;
+          os: string | null;
+          ip_address: string | null;
+          location: string | null;
+          event_type: "login" | "logout" | "refresh";
+          last_seen_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          session_identifier: string;
+          device_type?: string | null;
+          browser?: string | null;
+          os?: string | null;
+          ip_address?: string | null;
+          location?: string | null;
+          event_type: "login" | "logout" | "refresh";
+          last_seen_at?: string;
+          created_at?: string;
+        };
+        Update: never;
+      };
+
+      user_active_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_identifier: string;
+          device_type: string | null;
+          browser: string | null;
+          os: string | null;
+          ip_address: string | null;
+          location: string | null;
+          user_agent: string | null;
+          status: UserActiveSessionStatus;
+          trusted_status: UserTrustedDeviceStatus;
+          trusted_at: string | null;
+          reviewed_at: string | null;
+          is_2fa_verified: boolean;
+          last_2fa_verified_at: string | null;
+          first_seen_at: string;
+          last_seen_at: string;
+          signed_out_at: string | null;
+          revoked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          session_identifier: string;
+          device_type?: string | null;
+          browser?: string | null;
+          os?: string | null;
+          ip_address?: string | null;
+          location?: string | null;
+          user_agent?: string | null;
+          status?: UserActiveSessionStatus;
+          trusted_status?: UserTrustedDeviceStatus;
+          trusted_at?: string | null;
+          reviewed_at?: string | null;
+          is_2fa_verified?: boolean;
+          last_2fa_verified_at?: string | null;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          signed_out_at?: string | null;
+          revoked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          device_type?: string | null;
+          browser?: string | null;
+          os?: string | null;
+          ip_address?: string | null;
+          location?: string | null;
+          user_agent?: string | null;
+          status?: UserActiveSessionStatus;
+          trusted_status?: UserTrustedDeviceStatus;
+          trusted_at?: string | null;
+          reviewed_at?: string | null;
+          is_2fa_verified?: boolean;
+          last_2fa_verified_at?: string | null;
+          last_seen_at?: string;
+          signed_out_at?: string | null;
+          revoked_at?: string | null;
+          updated_at?: string;
         };
       };
 
@@ -996,6 +2163,186 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["company_settings"]["Insert"]>;
       };
 
+      document_branding_settings: {
+        Row: {
+          id: string;
+          tagline: string | null;
+          primary_brand_color: string;
+          secondary_brand_color: string | null;
+          show_logo_on_documents: boolean;
+          invoice_number_prefix: string;
+          invoice_title: string;
+          invoice_default_due_days: number;
+          invoice_date_format: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          invoice_show_title: boolean;
+          invoice_show_invoice_date: boolean;
+          invoice_show_due_date: boolean;
+          invoice_show_company_logo: boolean;
+          invoice_show_company_address: boolean;
+          invoice_show_company_email_phone: boolean;
+          invoice_show_customer_address: boolean;
+          invoice_show_item_descriptions: boolean;
+          invoice_show_item_quantity: boolean;
+          invoice_show_item_unit_price: boolean;
+          invoice_show_line_total: boolean;
+          invoice_show_subtotal: boolean;
+          invoice_show_tax: boolean;
+          invoice_show_discounts: boolean;
+          invoice_show_grand_total: boolean;
+          invoice_paid_label: string;
+          invoice_unpaid_label: string;
+          invoice_overdue_label: string;
+          quotation_number_prefix: string;
+          quotation_title: string;
+          quotation_default_validity_days: number;
+          quotation_date_format: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          quotation_show_title: boolean;
+          quotation_show_quotation_date: boolean;
+          quotation_show_expiry_date: boolean;
+          quotation_show_company_logo: boolean;
+          quotation_show_company_address: boolean;
+          quotation_show_company_email_phone: boolean;
+          quotation_show_customer_address: boolean;
+          quotation_show_item_descriptions: boolean;
+          quotation_show_item_quantity: boolean;
+          quotation_show_item_unit_price: boolean;
+          quotation_show_line_total: boolean;
+          quotation_show_subtotal: boolean;
+          quotation_show_tax: boolean;
+          quotation_show_discounts: boolean;
+          quotation_show_grand_total: boolean;
+          quotation_draft_label: string;
+          quotation_sent_label: string;
+          quotation_accepted_label: string;
+          quotation_expired_label: string;
+          receipt_number_prefix: string;
+          receipt_title: string;
+          receipt_default_validity_days: number;
+          receipt_date_format: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          receipt_show_title: boolean;
+          receipt_show_receipt_date: boolean;
+          receipt_show_payment_date: boolean;
+          receipt_show_company_logo: boolean;
+          receipt_show_company_address: boolean;
+          receipt_show_company_email_phone: boolean;
+          receipt_show_customer_address: boolean;
+          receipt_show_payment_method: boolean;
+          receipt_show_item_descriptions: boolean;
+          receipt_show_item_quantity: boolean;
+          receipt_show_item_unit_price: boolean;
+          receipt_show_subtotal: boolean;
+          receipt_show_tax: boolean;
+          receipt_show_discounts: boolean;
+          receipt_show_grand_total: boolean;
+          receipt_paid_label: string;
+          receipt_partial_label: string;
+          receipt_refunded_label: string;
+          receipt_cancelled_label: string;
+          default_footer_text: string | null;
+          invoice_footer_text: string | null;
+          quotation_footer_text: string | null;
+          receipt_footer_text: string | null;
+          terms_conditions: string | null;
+          payment_instructions: string | null;
+          show_footer_on_documents: boolean;
+          show_terms_conditions: boolean;
+          show_signature_block: boolean;
+          show_page_numbers: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tagline?: string | null;
+          primary_brand_color?: string;
+          secondary_brand_color?: string | null;
+          show_logo_on_documents?: boolean;
+          invoice_number_prefix?: string;
+          invoice_title?: string;
+          invoice_default_due_days?: number;
+          invoice_date_format?: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          invoice_show_title?: boolean;
+          invoice_show_invoice_date?: boolean;
+          invoice_show_due_date?: boolean;
+          invoice_show_company_logo?: boolean;
+          invoice_show_company_address?: boolean;
+          invoice_show_company_email_phone?: boolean;
+          invoice_show_customer_address?: boolean;
+          invoice_show_item_descriptions?: boolean;
+          invoice_show_item_quantity?: boolean;
+          invoice_show_item_unit_price?: boolean;
+          invoice_show_line_total?: boolean;
+          invoice_show_subtotal?: boolean;
+          invoice_show_tax?: boolean;
+          invoice_show_discounts?: boolean;
+          invoice_show_grand_total?: boolean;
+          invoice_paid_label?: string;
+          invoice_unpaid_label?: string;
+          invoice_overdue_label?: string;
+          quotation_number_prefix?: string;
+          quotation_title?: string;
+          quotation_default_validity_days?: number;
+          quotation_date_format?: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          quotation_show_title?: boolean;
+          quotation_show_quotation_date?: boolean;
+          quotation_show_expiry_date?: boolean;
+          quotation_show_company_logo?: boolean;
+          quotation_show_company_address?: boolean;
+          quotation_show_company_email_phone?: boolean;
+          quotation_show_customer_address?: boolean;
+          quotation_show_item_descriptions?: boolean;
+          quotation_show_item_quantity?: boolean;
+          quotation_show_item_unit_price?: boolean;
+          quotation_show_line_total?: boolean;
+          quotation_show_subtotal?: boolean;
+          quotation_show_tax?: boolean;
+          quotation_show_discounts?: boolean;
+          quotation_show_grand_total?: boolean;
+          quotation_draft_label?: string;
+          quotation_sent_label?: string;
+          quotation_accepted_label?: string;
+          quotation_expired_label?: string;
+          receipt_number_prefix?: string;
+          receipt_title?: string;
+          receipt_default_validity_days?: number;
+          receipt_date_format?: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+          receipt_show_title?: boolean;
+          receipt_show_receipt_date?: boolean;
+          receipt_show_payment_date?: boolean;
+          receipt_show_company_logo?: boolean;
+          receipt_show_company_address?: boolean;
+          receipt_show_company_email_phone?: boolean;
+          receipt_show_customer_address?: boolean;
+          receipt_show_payment_method?: boolean;
+          receipt_show_item_descriptions?: boolean;
+          receipt_show_item_quantity?: boolean;
+          receipt_show_item_unit_price?: boolean;
+          receipt_show_subtotal?: boolean;
+          receipt_show_tax?: boolean;
+          receipt_show_discounts?: boolean;
+          receipt_show_grand_total?: boolean;
+          receipt_paid_label?: string;
+          receipt_partial_label?: string;
+          receipt_refunded_label?: string;
+          receipt_cancelled_label?: string;
+          default_footer_text?: string | null;
+          invoice_footer_text?: string | null;
+          quotation_footer_text?: string | null;
+          receipt_footer_text?: string | null;
+          terms_conditions?: string | null;
+          payment_instructions?: string | null;
+          show_footer_on_documents?: boolean;
+          show_terms_conditions?: boolean;
+          show_signature_block?: boolean;
+          show_page_numbers?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["document_branding_settings"]["Insert"]
+        >;
+      };
+
       field_jobs: {
         Row: {
           id: string;
@@ -1688,6 +3035,131 @@ export interface Database {
 }
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
+export type CrmRole = Database["public"]["Tables"]["crm_roles"]["Row"];
+export type CrmRoleInsert =
+  Database["public"]["Tables"]["crm_roles"]["Insert"];
+export type CrmRoleUpdate =
+  Database["public"]["Tables"]["crm_roles"]["Update"];
+export type ProfileRole =
+  Database["public"]["Tables"]["profile_roles"]["Row"];
+export type ProfileRoleInsert =
+  Database["public"]["Tables"]["profile_roles"]["Insert"];
+export type Team = Database["public"]["Tables"]["teams"]["Row"];
+export type TeamInsert = Database["public"]["Tables"]["teams"]["Insert"];
+export type TeamUpdate = Database["public"]["Tables"]["teams"]["Update"];
+export type TeamMember =
+  Database["public"]["Tables"]["team_members"]["Row"];
+export type TeamMemberInsert =
+  Database["public"]["Tables"]["team_members"]["Insert"];
+export type TeamMemberUpdate =
+  Database["public"]["Tables"]["team_members"]["Update"];
+export type CrmPermissionSet =
+  Database["public"]["Tables"]["crm_permission_sets"]["Row"];
+export type CrmPermissionSetInsert =
+  Database["public"]["Tables"]["crm_permission_sets"]["Insert"];
+export type CrmPermissionSetUpdate =
+  Database["public"]["Tables"]["crm_permission_sets"]["Update"];
+export type CrmPermissionSetRule =
+  Database["public"]["Tables"]["crm_permission_set_rules"]["Row"];
+export type CrmPermissionSetRuleInsert =
+  Database["public"]["Tables"]["crm_permission_set_rules"]["Insert"];
+export type CrmPermissionSetRuleUpdate =
+  Database["public"]["Tables"]["crm_permission_set_rules"]["Update"];
+export type CrmRolePermissionSet =
+  Database["public"]["Tables"]["crm_role_permission_sets"]["Row"];
+export type CrmRolePermission =
+  Database["public"]["Tables"]["crm_role_permissions"]["Row"];
+export type CrmRolePermissionInsert =
+  Database["public"]["Tables"]["crm_role_permissions"]["Insert"];
+export type CrmRolePermissionUpdate =
+  Database["public"]["Tables"]["crm_role_permissions"]["Update"];
+export type UserInvitation =
+  Database["public"]["Tables"]["user_invitations"]["Row"];
+export type UserInvitationInsert =
+  Database["public"]["Tables"]["user_invitations"]["Insert"];
+export type UserInvitationUpdate =
+  Database["public"]["Tables"]["user_invitations"]["Update"];
+export type TeamManagementSettings =
+  Database["public"]["Tables"]["team_management_settings"]["Row"];
+export type TeamManagementSettingsInsert =
+  Database["public"]["Tables"]["team_management_settings"]["Insert"];
+export type TeamManagementSettingsUpdate =
+  Database["public"]["Tables"]["team_management_settings"]["Update"];
+export type UserPreferences =
+  Database["public"]["Tables"]["user_preferences"]["Row"];
+export type UserPreferencesInsert =
+  Database["public"]["Tables"]["user_preferences"]["Insert"];
+export type UserPreferencesUpdate =
+  Database["public"]["Tables"]["user_preferences"]["Update"];
+export type NotificationPreference =
+  Database["public"]["Tables"]["notification_preferences"]["Row"];
+export type NotificationPreferenceInsert =
+  Database["public"]["Tables"]["notification_preferences"]["Insert"];
+export type NotificationPreferenceUpdate =
+  Database["public"]["Tables"]["notification_preferences"]["Update"];
+export type NotificationChannelSettings =
+  Database["public"]["Tables"]["notification_channel_settings"]["Row"];
+export type NotificationChannelSettingsInsert =
+  Database["public"]["Tables"]["notification_channel_settings"]["Insert"];
+export type NotificationChannelSettingsUpdate =
+  Database["public"]["Tables"]["notification_channel_settings"]["Update"];
+export type NotificationPhoneNumber =
+  Database["public"]["Tables"]["notification_phone_numbers"]["Row"];
+export type NotificationPhoneNumberInsert =
+  Database["public"]["Tables"]["notification_phone_numbers"]["Insert"];
+export type NotificationPhoneNumberUpdate =
+  Database["public"]["Tables"]["notification_phone_numbers"]["Update"];
+export type DocumentBrandingSettings =
+  Database["public"]["Tables"]["document_branding_settings"]["Row"];
+export type DocumentBrandingSettingsInsert =
+  Database["public"]["Tables"]["document_branding_settings"]["Insert"];
+export type DocumentBrandingSettingsUpdate =
+  Database["public"]["Tables"]["document_branding_settings"]["Update"];
+export type UserSecurityEvent =
+  Database["public"]["Tables"]["user_security_events"]["Row"];
+export type UserSecurityEventInsert =
+  Database["public"]["Tables"]["user_security_events"]["Insert"];
+export type UserSecuritySettings =
+  Database["public"]["Tables"]["user_security_settings"]["Row"];
+export type UserSecuritySettingsInsert =
+  Database["public"]["Tables"]["user_security_settings"]["Insert"];
+export type UserSecuritySettingsUpdate =
+  Database["public"]["Tables"]["user_security_settings"]["Update"];
+export type UserTwoFactorSettings =
+  Database["public"]["Tables"]["user_2fa_settings"]["Row"];
+export type UserTwoFactorSettingsInsert =
+  Database["public"]["Tables"]["user_2fa_settings"]["Insert"];
+export type UserTwoFactorSettingsUpdate =
+  Database["public"]["Tables"]["user_2fa_settings"]["Update"];
+export type UserBackupCode =
+  Database["public"]["Tables"]["user_backup_codes"]["Row"];
+export type UserBackupCodeInsert =
+  Database["public"]["Tables"]["user_backup_codes"]["Insert"];
+export type UserBackupCodeUpdate =
+  Database["public"]["Tables"]["user_backup_codes"]["Update"];
+export type UserRecoveryContact =
+  Database["public"]["Tables"]["user_recovery_contacts"]["Row"];
+export type UserRecoveryContactInsert =
+  Database["public"]["Tables"]["user_recovery_contacts"]["Insert"];
+export type UserRecoveryContactUpdate =
+  Database["public"]["Tables"]["user_recovery_contacts"]["Update"];
+export type UserSecurityQuestion =
+  Database["public"]["Tables"]["user_security_questions"]["Row"];
+export type UserSecurityQuestionInsert =
+  Database["public"]["Tables"]["user_security_questions"]["Insert"];
+export type UserSecurityQuestionUpdate =
+  Database["public"]["Tables"]["user_security_questions"]["Update"];
+export type UserSessionEvent =
+  Database["public"]["Tables"]["user_session_events"]["Row"];
+export type UserSessionEventInsert =
+  Database["public"]["Tables"]["user_session_events"]["Insert"];
+export type UserActiveSession =
+  Database["public"]["Tables"]["user_active_sessions"]["Row"];
+export type UserActiveSessionInsert =
+  Database["public"]["Tables"]["user_active_sessions"]["Insert"];
+export type UserActiveSessionUpdate =
+  Database["public"]["Tables"]["user_active_sessions"]["Update"];
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
 export type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 export type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];

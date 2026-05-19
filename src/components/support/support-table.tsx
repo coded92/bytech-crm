@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDateTime } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { SupportStatusBadge } from "@/components/support/support-status-badge";
 import { Badge } from "@/components/ui/badge";
 
@@ -19,7 +20,13 @@ type SupportRow = {
   } | null;
 };
 
-export function SupportTable({ tickets }: { tickets: SupportRow[] }) {
+export function SupportTable({
+  tickets,
+  preferences,
+}: {
+  tickets: SupportRow[];
+  preferences: Pick<UserPreferenceSnapshot, "date_format" | "time_format">;
+}) {
   if (tickets.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -54,7 +61,7 @@ export function SupportTable({ tickets }: { tickets: SupportRow[] }) {
               <p className="capitalize">Type: {ticket.issue_type}</p>
               <p className="capitalize">Priority: {ticket.priority}</p>
               <p>Assigned: {ticket.assigned_profile?.full_name || "-"}</p>
-              <p>Created: {formatDateTime(ticket.created_at)}</p>
+              <p>Created: {formatUserDateTime(ticket.created_at, preferences)}</p>
             </div>
 
             <div className="mt-4 flex items-center gap-4">
@@ -133,7 +140,7 @@ export function SupportTable({ tickets }: { tickets: SupportRow[] }) {
                     {ticket.assigned_profile?.full_name || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
-                    {formatDateTime(ticket.created_at)}
+                    {formatUserDateTime(ticket.created_at, preferences)}
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">

@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate, formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDate, formatUserDateTime } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -53,6 +55,8 @@ export default async function CustomerStatementPrintPage({
 }: CustomerStatementPrintPageProps) {
   const { id } = await params;
   const { from, to } = await searchParams;
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   let invoicesQuery = supabase
@@ -126,7 +130,9 @@ export default async function CustomerStatementPrintPage({
       : { label: "Settled", tone: "success" as const };
   const statementPeriod =
     from || to
-      ? `${from ? formatDate(from) : "Beginning"} - ${to ? formatDate(to) : "Present"}`
+      ? `${from ? formatUserDate(from, preferences) : "Beginning"} - ${
+          to ? formatUserDate(to, preferences) : "Present"
+        }`
       : "All available transactions";
 
   return (
@@ -159,7 +165,7 @@ export default async function CustomerStatementPrintPage({
               <div className="mt-4">
                 <DocumentInfoRow
                   label="Generated On"
-                  value={formatDateTime(new Date().toISOString())}
+                  value={formatUserDateTime(new Date().toISOString(), preferences)}
                 />
               </div>
             </div>
@@ -237,8 +243,8 @@ export default async function CustomerStatementPrintPage({
                 {invoices.map((invoice) => (
                   <tr key={invoice.id}>
                     <td className="font-medium text-slate-950">{invoice.invoice_number}</td>
-                    <td>{formatDate(invoice.created_at)}</td>
-                    <td>{formatDate(invoice.due_date)}</td>
+                    <td>{formatUserDate(invoice.created_at, preferences)}</td>
+                    <td>{formatUserDate(invoice.due_date, preferences)}</td>
                     <td className="capitalize">{invoice.status}</td>
                     <td className="text-right">{formatCurrency(invoice.amount)}</td>
                     <td className="text-right">{formatCurrency(invoice.amount_paid)}</td>
@@ -278,7 +284,7 @@ export default async function CustomerStatementPrintPage({
                       {receipt.receipt_number}
                     </td>
                     <td>{receipt.invoice?.invoice_number || "-"}</td>
-                    <td>{formatDate(receipt.payment_date)}</td>
+                    <td>{formatUserDate(receipt.payment_date, preferences)}</td>
                     <td>{receipt.payment_method || "-"}</td>
                     <td className="text-right font-semibold text-slate-950">
                       {formatCurrency(receipt.amount_received)}

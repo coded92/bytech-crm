@@ -2,6 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { Button } from "@/components/ui/button";
 
@@ -18,13 +22,16 @@ type InventoryRow = {
 
 export default async function InventoryPage() {
   await requireModule("inventory");
-  await requireProfile();
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("inventory_items")
     .select("id, item_code, item_name, category, unit, current_quantity, minimum_quantity, unit_cost")
-    .order("item_name", { ascending: true });
+    .order("item_name", { ascending: true })
+    .limit(itemsPerPage);
 
   const items = (data ?? []) as InventoryRow[];
 

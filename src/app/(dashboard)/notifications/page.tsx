@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
-import { formatDate, formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDate, formatUserDateTime } from "@/lib/preferences/format";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NotificationList } from "@/components/notifications/notification-list";
 
@@ -54,7 +58,9 @@ type FieldJobAlertRow = {
 };
 
 export default async function NotificationsPage() {
-  await requireModule("notifications");
+  const profile = await requireModule("notifications");
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const {
@@ -84,7 +90,7 @@ export default async function NotificationsPage() {
       .select("id, title, message, type, is_read, related_table, related_id, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(30),
+      .limit(itemsPerPage),
 
     supabase
       .from("tasks")
@@ -189,7 +195,7 @@ export default async function NotificationsPage() {
                   key={task.id}
                   href={`/tasks/${task.id}`}
                   title={task.title}
-                  meta={`Due: ${formatDateTime(task.due_date)}`}
+                  meta={`Due: ${formatUserDateTime(task.due_date, preferences)}`}
                 />
               ))
             )}
@@ -204,7 +210,7 @@ export default async function NotificationsPage() {
                   key={task.id}
                   href={`/tasks/${task.id}`}
                   title={task.title}
-                  meta={`Due: ${formatDateTime(task.due_date)}`}
+                  meta={`Due: ${formatUserDateTime(task.due_date, preferences)}`}
                 />
               ))
             )}
@@ -219,7 +225,10 @@ export default async function NotificationsPage() {
                   key={lead.id}
                   href={`/leads/${lead.id}`}
                   title={lead.company_name}
-                  meta={`Follow-up: ${formatDateTime(lead.next_follow_up_at)}`}
+                  meta={`Follow-up: ${formatUserDateTime(
+                    lead.next_follow_up_at,
+                    preferences
+                  )}`}
                 />
               ))
             )}
@@ -234,7 +243,10 @@ export default async function NotificationsPage() {
                   key={lead.id}
                   href={`/leads/${lead.id}`}
                   title={lead.company_name}
-                  meta={`Follow-up: ${formatDateTime(lead.next_follow_up_at)}`}
+                  meta={`Follow-up: ${formatUserDateTime(
+                    lead.next_follow_up_at,
+                    preferences
+                  )}`}
                 />
               ))
             )}
@@ -249,7 +261,10 @@ export default async function NotificationsPage() {
                   key={invoice.id}
                   href={`/payments/invoices/${invoice.id}`}
                   title={invoice.invoice_number}
-                  meta={`Due: ${formatDate(invoice.due_date)} · Balance: ${invoice.balance}`}
+                  meta={`Due: ${formatUserDate(
+                    invoice.due_date,
+                    preferences
+                  )} · Balance: ${invoice.balance}`}
                 />
               ))
             )}
@@ -279,7 +294,10 @@ export default async function NotificationsPage() {
                   key={job.id}
                   href={`/field-jobs/${job.id}`}
                   title={`${job.job_number} - ${job.title}`}
-                  meta={`Scheduled: ${formatDate(job.scheduled_date)}`}
+                  meta={`Scheduled: ${formatUserDate(
+                    job.scheduled_date,
+                    preferences
+                  )}`}
                 />
               ))
             )}
@@ -294,7 +312,10 @@ export default async function NotificationsPage() {
                   key={job.id}
                   href={`/field-jobs/${job.id}`}
                   title={`${job.job_number} - ${job.title}`}
-                  meta={`Scheduled: ${formatDate(job.scheduled_date)}`}
+                  meta={`Scheduled: ${formatUserDate(
+                    job.scheduled_date,
+                    preferences
+                  )}`}
                 />
               ))
             )}

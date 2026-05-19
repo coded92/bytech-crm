@@ -1,59 +1,57 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { CustomerEditForm } from "@/components/customers/customer-edit-form";
+import { requireModule } from "@/lib/auth/require-module";
+import { createClient } from "@/lib/supabase/server";
 
 type EditCustomerPageProps = {
   params: Promise<{ id: string }>;
 };
 
-type CustomerRow = {
-  id: string;
-  company_name: string;
-  contact_person: string | null;
-  phone: string | null;
-  email: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  business_type: string | null;
-  plan_type: "cloud" | "offline" | null;
-  billing_cycle: "monthly" | "quarterly" | "yearly" | "one_time" | null;
-  subscription_amount: number;
-  setup_fee: number;
-  status: "active" | "inactive" | "suspended";
-  notes: string | null;
-};
-
 export default async function EditCustomerPage({
   params,
 }: EditCustomerPageProps) {
+  await requireModule("customers");
+
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: customer } = await supabase
-    .from("customers")
-    .select(
-      "id, company_name, contact_person, phone, email, address, city, state, business_type, plan_type, billing_cycle, subscription_amount, setup_fee, status, notes"
-    )
-    .eq("id", id)
-    .single();
+  const [{ data: customer }, { data: accountManagers }] = await Promise.all([
+    supabase
+      .from("customers")
+      .select(
+        "id, company_name, contact_person, phone, alternate_phone, email, address, city, state, industry, business_type, plan_type, billing_cycle, subscription_amount, setup_fee, onboarding_date, go_live_date, account_manager_id, status, notes"
+      )
+      .eq("id", id)
+      .single(),
+    supabase
+      .from("profiles")
+      .select("id, full_name, department")
+      .eq("is_active", true)
+      .order("full_name", { ascending: true }),
+  ]);
 
   if (!customer) {
     notFound();
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
+          Customer Workspace
+        </p>
+        <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
           Edit Customer
         </h2>
-        <p className="text-slate-600">
-          Update customer account details and billing information.
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">
+          Update customer account details and billing information without changing the underlying business logic.
         </p>
       </div>
 
-      <CustomerEditForm customer={customer as CustomerRow} />
+      <CustomerEditForm
+        customer={customer}
+        accountManagers={accountManagers || []}
+      />
     </div>
   );
 }

@@ -2,12 +2,18 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { TaskTable } from "@/components/tasks/task-table";
 import { Button } from "@/components/ui/button";
 
 export default async function TasksPage() {
   await requireModule("tasks");
   const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const query =
@@ -24,6 +30,7 @@ export default async function TasksPage() {
             assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
           `)
           .order("created_at", { ascending: false })
+          .limit(itemsPerPage)
       : supabase
           .from("tasks")
           .select(`
@@ -36,7 +43,8 @@ export default async function TasksPage() {
             assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
           `)
           .eq("assigned_to", profile.id)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(itemsPerPage);
 
   const { data: tasks, error } = await query;
 
@@ -64,7 +72,7 @@ export default async function TasksPage() {
           Failed to load tasks: {error.message}
         </div>
       ) : (
-        <TaskTable tasks={tasks || []} />
+        <TaskTable tasks={tasks || []} preferences={preferences} />
       )}
     </div>
   );

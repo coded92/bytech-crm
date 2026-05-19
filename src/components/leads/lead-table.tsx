@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { formatUserDateTime } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDateTime } from "@/lib/utils/format-date";
 import { LeadStatusBadge } from "@/components/leads/lead-status-badge";
 
 type LeadRow = {
@@ -22,7 +23,13 @@ type LeadRow = {
   } | null;
 };
 
-export function LeadTable({ leads }: { leads: LeadRow[] }) {
+export function LeadTable({
+  leads,
+  preferences,
+}: {
+  leads: LeadRow[];
+  preferences: Pick<UserPreferenceSnapshot, "date_format" | "time_format">;
+}) {
   if (leads.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -80,7 +87,7 @@ export function LeadTable({ leads }: { leads: LeadRow[] }) {
                   {formatCurrency(lead.estimated_value)}
                 </td>
                 <td className="px-4 py-4 text-sm text-slate-600">
-                  {formatDateTime(lead.next_follow_up_at)}
+                  {formatUserDateTime(lead.next_follow_up_at, preferences)}
                 </td>
                 <td className="px-4 py-4 text-sm text-slate-600">
                   {lead.assigned_profile?.full_name || "-"}

@@ -2,19 +2,26 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/require-profile";
 import { requireModule } from "@/lib/auth/require-module";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { ExpenseTable } from "@/components/expenses/expense-table";
 import { Button } from "@/components/ui/button";
 
 export default async function ExpensesPage() {
   await requireModule("expenses");
   const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data: expenses, error } = await supabase
     .from("expenses")
     .select("id, title, amount, category, expense_date, notes")
     .order("expense_date", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -40,7 +47,7 @@ export default async function ExpensesPage() {
           Failed to load expenses: {error.message}
         </div>
       ) : (
-        <ExpenseTable expenses={expenses || []} />
+        <ExpenseTable expenses={expenses || []} dateFormat={preferences.date_format} />
       )}
     </div>
   );

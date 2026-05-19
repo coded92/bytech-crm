@@ -2,6 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { ReportTable } from "@/components/reports/report-table";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +28,8 @@ export default async function ReportsPage() {
   await requireModule("reports");
 
   const profile = (await requireProfile()) as ProfileWithDepartment;
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   let query = supabase
@@ -53,7 +59,7 @@ export default async function ReportsPage() {
     query = query.eq("staff_id", profile.id);
   }
 
-  const { data: reports, error } = await query;
+  const { data: reports, error } = await query.limit(itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -82,7 +88,7 @@ export default async function ReportsPage() {
           Failed to load reports: {error.message}
         </div>
       ) : (
-        <ReportTable reports={reports || []} />
+        <ReportTable reports={reports || []} preferences={preferences} />
       )}
     </div>
   );

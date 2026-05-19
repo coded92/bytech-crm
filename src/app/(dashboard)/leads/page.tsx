@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { LeadTable } from "@/components/leads/lead-table";
 import { Button } from "@/components/ui/button";
 
 export default async function LeadsPage() {
-  await requireModule("leads");
+  const profile = await requireModule("leads");
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
   const supabase = await createClient();
 
   const { data: leads, error } = await supabase
@@ -22,7 +28,8 @@ export default async function LeadsPage() {
         full_name
       )
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -42,7 +49,7 @@ export default async function LeadsPage() {
           Failed to load leads: {error.message}
         </div>
       ) : (
-        <LeadTable leads={leads || []} />
+        <LeadTable leads={leads || []} preferences={preferences} />
       )}
     </div>
   );

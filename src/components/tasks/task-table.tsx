@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDateTime } from "@/lib/preferences/format";
+import type { UserPreferenceSnapshot } from "@/lib/preferences/user-preferences";
 import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { Badge } from "@/components/ui/badge";
 
@@ -15,7 +16,13 @@ type TaskRow = {
   } | null;
 };
 
-export function TaskTable({ tasks }: { tasks: TaskRow[] }) {
+export function TaskTable({
+  tasks,
+  preferences,
+}: {
+  tasks: TaskRow[];
+  preferences: Pick<UserPreferenceSnapshot, "date_format" | "time_format">;
+}) {
   if (tasks.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
@@ -53,7 +60,7 @@ export function TaskTable({ tasks }: { tasks: TaskRow[] }) {
 
             <div className="mt-4 space-y-2 text-sm text-slate-600">
               <p>Assigned To: {task.assigned_to_profile?.full_name ?? "-"}</p>
-              <p>Due Date: {formatDateTime(task.due_date)}</p>
+              <p>Due Date: {formatUserDateTime(task.due_date, preferences)}</p>
             </div>
 
             <div className="mt-4 flex items-center gap-4">
@@ -122,7 +129,7 @@ export function TaskTable({ tasks }: { tasks: TaskRow[] }) {
                     <TaskStatusBadge status={task.status} />
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
-                    {formatDateTime(task.due_date)}
+                    {formatUserDateTime(task.due_date, preferences)}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {task.assigned_to_profile?.full_name ?? "-"}

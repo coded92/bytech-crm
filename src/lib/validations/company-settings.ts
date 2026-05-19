@@ -14,3 +14,11 @@ export const updateCompanySettingsSchema = z.object({
   currency_symbol: z.string().min(1, "Currency symbol is required"),
   document_footer: z.string().optional(),
 });
+
+export const updateOrganizationInfoSchema = z.object({
+  company_name: z.string().trim().min(2, "Organization name is required"),
+  email: z.string().trim().email("Enter a valid organization email").optional(),
+  phone: z.string().trim().max(40).optional(),
+  website: z.string().trim().max(200).optional(),
+  address: z.string().trim().max(500).optional(),
+});

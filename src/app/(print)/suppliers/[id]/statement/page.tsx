@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate, formatDateTime } from "@/lib/utils/format-date";
+import { formatUserDate, formatUserDateTime } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -37,6 +39,8 @@ export default async function SupplierStatementPage({
   params,
 }: SupplierStatementPageProps) {
   const { id } = await params;
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const [{ data: supplierData }, { data: rowsData }] = await Promise.all([
@@ -103,7 +107,7 @@ export default async function SupplierStatementPage({
               <div className="mt-4">
                 <DocumentInfoRow
                   label="Generated On"
-                  value={formatDateTime(new Date().toISOString())}
+                  value={formatUserDateTime(new Date().toISOString(), preferences)}
                 />
               </div>
             </div>
@@ -230,7 +234,7 @@ export default async function SupplierStatementPage({
                       <td className="font-medium text-slate-950">
                         {row.restock_number}
                       </td>
-                      <td>{formatDate(row.order_date)}</td>
+                      <td>{formatUserDate(row.order_date, preferences)}</td>
                       <td className="capitalize">
                         {row.payment_status.replace("_", " ")}
                       </td>

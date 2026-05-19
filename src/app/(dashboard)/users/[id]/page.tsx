@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requireProfileAccess } from "@/lib/auth/require-profile-access";
 import { formatDate, formatDateTime } from "@/lib/utils/format-date";
 import { ToggleUserStatusButton } from "@/components/users/toggle-user-status-button";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type UserDetailsPageProps = {
   params: Promise<{ id: string }>;
-};
-
-type AdminProfile = {
-  id: string;
-  role: "admin" | "staff";
-  full_name: string;
 };
 
 type UserRow = {
@@ -43,8 +37,8 @@ type UserRow = {
 export default async function UserDetailsPage({
   params,
 }: UserDetailsPageProps) {
-  const admin = (await requireAdmin()) as AdminProfile;
   const { id } = await params;
+  const access = await requireProfileAccess(id);
   const supabase = await createClient();
 
   const { data: userData, error } = await supabase
@@ -68,7 +62,7 @@ export default async function UserDetailsPage({
   }
 
   const user = userData as UserRow;
-  const canToggleStatus = admin.id !== user.id;
+  const canToggleStatus = access.isAdmin && access.currentProfile.id !== user.id;
 
   return (
     <div className="space-y-6">
@@ -98,9 +92,11 @@ export default async function UserDetailsPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button asChild>
-            <Link href={`/users/${user.id}/edit`}>Edit User</Link>
-          </Button>
+          {access.canManageProfile ? (
+            <Button asChild>
+              <Link href={`/users/${user.id}/edit`}>Edit User</Link>
+            </Button>
+          ) : null}
 
           {canToggleStatus ? (
             <ToggleUserStatusButton

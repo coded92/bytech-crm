@@ -1,5 +1,22 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  BarChart3,
+  Bell,
+  BriefcaseBusiness,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  FileText,
+  Package,
+  Sparkles,
+  Users,
+  Wallet,
+  Wrench,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
 import { requireProfile } from "@/lib/auth/require-profile";
@@ -401,9 +418,9 @@ export default async function DashboardPage() {
       departments: ["sales", "support", "engineering", "operations", "inventory", "finance", "hr"],
     },
     {
-      title: "Users",
+      title: "Team Members",
       value: String(usersCount ?? 0),
-      href: "/users",
+      href: "/team-management",
       modules: ["users"],
       departments: ["hr"],
     },
@@ -467,7 +484,7 @@ export default async function DashboardPage() {
 
 
   return (
-    <div className="space-y-7 pb-6">
+    <div className="space-y-5 pb-6 sm:space-y-6">
       <DashboardHero
         greeting={`${getGreeting()}, ${profile.full_name.split(" ")[0]}`}
         title={dashboardTitle}
@@ -505,6 +522,7 @@ export default async function DashboardPage() {
                 value={metric.value}
                 href={metric.href}
                 priority={index === 0 ? "primary" : "default"}
+                index={index}
               />
             ))}
           </div>
@@ -643,6 +661,7 @@ export default async function DashboardPage() {
                   {profile.role === "admin" ? (
                     <>
                       <QuickLink href="/users/new">Create User</QuickLink>
+                      <QuickLink href="/team-management">Team Management</QuickLink>
                       <QuickLink href="/projects/new">Create Project</QuickLink>
                       <QuickLink href="/quotations/new">Create Quotation</QuickLink>
                       <QuickLink href="/settings/company">Company Settings</QuickLink>
@@ -665,10 +684,120 @@ export default async function DashboardPage() {
               </div>
             </SectionCard>
           ) : null}
+
+          <ProductivityTips profile={profile} />
         </div>
       </div>
     </div>
   );
+}
+
+function ProductivityTips({ profile }: { profile: ProfileWithDepartment }) {
+  const tips = getProductivityTips(profile);
+
+  if (tips.length === 0) return null;
+
+  return (
+    <div data-productivity-tips>
+      <SectionCard title="Productivity Tips" eyebrow="Guidance">
+        <div className="space-y-3 text-sm">
+        {tips.map((tip) => (
+          <div
+            key={tip.title}
+            className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3"
+          >
+            <div className="flex gap-3">
+              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-white text-[var(--bytech-accent)] shadow-sm shadow-indigo-100">
+                <Sparkles className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-950">{tip.title}</p>
+                <p className="mt-1 leading-5 text-slate-600">{tip.description}</p>
+                {tip.href ? (
+                  <Link
+                    href={tip.href}
+                    className="mt-2 inline-flex text-xs font-semibold text-[var(--bytech-accent)] hover:underline"
+                  >
+                    Open
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ))}
+        </div>
+      </SectionCard>
+    </div>
+  );
+}
+
+function getProductivityTips(profile: ProfileWithDepartment) {
+  const tips: Array<{ title: string; description: string; href?: string }> = [];
+
+  if (canAccess(profile, "search")) {
+    tips.push({
+      title: "Use command search for faster navigation",
+      description:
+        "Press Cmd/Ctrl + K, or click the search bar, to jump between CRM records and modules.",
+      href: "/search",
+    });
+  }
+
+  if (canAccess(profile, "reports")) {
+    tips.push({
+      title: "Close the day with a daily report",
+      description:
+        "Daily reports keep department progress visible without needing a separate status meeting.",
+      href: "/reports/new",
+    });
+  }
+
+  if (profile.department === "sales" && canAccess(profile, "leads")) {
+    tips.push({
+      title: "Keep lead follow-ups current",
+      description:
+        "Use the leads workspace to review open prospects and update next contact dates.",
+      href: "/leads",
+    });
+  }
+
+  if (profile.department === "finance" && canAccess(profile, "payments")) {
+    tips.push({
+      title: "Review overdue finance items early",
+      description:
+        "Checking invoices and payments at the start of the day helps prevent aging balances.",
+      href: "/payments",
+    });
+  }
+
+  if (profile.department === "inventory" && canAccess(profile, "inventory")) {
+    tips.push({
+      title: "Check low-stock items before field work starts",
+      description:
+        "Inventory review helps avoid stock surprises before support or field-job activity.",
+      href: "/inventory",
+    });
+  }
+
+  if (profile.department === "support" && canAccess(profile, "support")) {
+    tips.push({
+      title: "Triage urgent tickets first",
+      description:
+        "Review urgent and open support tickets before taking on lower-priority work.",
+      href: "/support",
+    });
+  }
+
+  if (tips.length < 3 && canAccess(profile, "tasks")) {
+    tips.push({
+      title: "Use tasks for personal work queues",
+      description:
+        "Tasks are the safest place to track follow-ups that should not live only in memory.",
+      href: "/tasks",
+    });
+  }
+
+  return tips.slice(0, 3);
 }
 function getUniqueQuickLinks(metrics: Metric[]) {
   const seen = new Set<string>();
@@ -967,7 +1096,7 @@ function getWorkQueue(
 
     case "hr":
       return [
-        { label: "Review Users", href: "/users" },
+        { label: "Review Team", href: "/team-management" },
         { label: "Review Daily Reports", href: "/reports" },
         { label: "Review Audit Logs", href: "/audit-logs" },
       ];
@@ -1238,30 +1367,34 @@ function DashboardHero({
   focus: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="grid gap-0 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white sm:p-7">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">
-            {date}
-          </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
-            {greeting}
-          </h1>
-          <p className="mt-2 text-sm font-medium text-slate-300">{title}</p>
-          <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-200">
-            {description}
-          </p>
+    <section className="overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/82 shadow-xl shadow-indigo-100/70 backdrop-blur">
+      <div className="grid gap-0 lg:grid-cols-[1.35fr_0.9fr]">
+        <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 p-5 text-white sm:p-7">
+          <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/14 blur-2xl" />
+          <div className="absolute -bottom-24 left-16 h-52 w-52 rounded-full bg-cyan-300/18 blur-3xl" />
+          <div className="relative">
+            <p className="inline-flex rounded-full bg-white/14 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/82 ring-1 ring-white/18">
+              {date}
+            </p>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
+              {greeting}
+            </h1>
+            <p className="mt-2 text-sm font-medium text-white/78">{title}</p>
+            <p className="mt-5 max-w-2xl text-sm leading-6 text-white/86">
+              {description}
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-5 p-6 sm:p-7">
+        <div className="space-y-4 p-5 sm:p-7">
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
             <HeroContext label="Role" value={role} />
             <HeroContext label="Department" value={department} />
             <HeroContext label="Module Access" value={moduleAccess} />
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
               Department Focus
             </p>
             <p className="mt-2 text-sm leading-6 text-slate-700">{focus}</p>
@@ -1274,7 +1407,7 @@ function DashboardHero({
 
 function HeroContext({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+    <div className="rounded-2xl border border-indigo-100 bg-white px-4 py-3 shadow-sm shadow-indigo-50">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </p>
@@ -1298,11 +1431,11 @@ function SectionHeader({
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div>
         {eyebrow ? (
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
             {eyebrow}
           </p>
         ) : null}
-        <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+        <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
           {title}
         </h2>
       </div>
@@ -1325,11 +1458,11 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="h-full rounded-2xl border border-slate-200 bg-white py-0 shadow-sm">
+    <Card className="h-full rounded-[1.5rem] border border-white/80 bg-white/86 py-0 shadow-lg shadow-indigo-100/50 backdrop-blur">
       {(title || eyebrow || description) ? (
-        <div className="border-b border-slate-100 px-5 py-4">
+        <div className="border-b border-indigo-50 px-5 py-4">
           {eyebrow ? (
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
               {eyebrow}
             </p>
           ) : null}
@@ -1351,41 +1484,55 @@ function MetricCard({
   value,
   href,
   priority = "default",
+  index,
 }: {
   title: string;
   value: string;
   href: string;
   priority?: "primary" | "default";
+  index: number;
 }) {
+  const visual = getMetricVisual(title, index);
+  const Icon = visual.icon;
+
   return (
     <Link href={href} className="group block h-full">
       <Card
         className={
           priority === "primary"
-            ? "h-full rounded-2xl border-slate-900 bg-slate-950 py-0 text-white shadow-sm transition group-hover:-translate-y-0.5 group-hover:shadow-md"
-            : "h-full rounded-2xl border-slate-200 bg-white py-0 shadow-sm transition group-hover:-translate-y-0.5 group-hover:border-slate-300 group-hover:shadow-md"
+            ? "h-full rounded-[1.5rem] border-transparent bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 py-0 text-white shadow-xl shadow-indigo-200/70 transition group-hover:-translate-y-0.5 group-hover:shadow-2xl"
+            : "h-full rounded-[1.5rem] border-white/80 bg-white/90 py-0 shadow-lg shadow-indigo-100/50 transition group-hover:-translate-y-0.5 group-hover:border-indigo-100 group-hover:shadow-xl"
         }
       >
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-3">
-            <p
+            <div
               className={
                 priority === "primary"
-                  ? "text-xs font-semibold uppercase tracking-wide text-slate-300"
-                  : "text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/18 text-white"
+                  : `flex h-11 w-11 items-center justify-center rounded-2xl ${visual.iconClass}`
               }
             >
-              {title}
-            </p>
-            <span
+              <Icon className="h-5 w-5" />
+            </div>
+            <ArrowUpRight
               className={
                 priority === "primary"
-                  ? "h-2 w-2 rounded-full bg-white/70"
-                  : "h-2 w-2 rounded-full bg-slate-300"
+                  ? "h-4 w-4 text-white/70"
+                  : "h-4 w-4 text-slate-300 transition group-hover:text-violet-500"
               }
             />
           </div>
-          <p className="mt-5 text-3xl font-semibold tracking-tight">{value}</p>
+          <p
+            className={
+              priority === "primary"
+                ? "mt-5 text-xs font-semibold uppercase tracking-wide text-white/70"
+                : "mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500"
+            }
+          >
+            {title}
+          </p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
         </CardContent>
       </Card>
     </Link>
@@ -1396,7 +1543,7 @@ function CompactMetricLink({ metric }: { metric: Metric }) {
   return (
     <Link
       href={metric.href}
-      className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+      className="flex items-center justify-between gap-4 rounded-2xl border border-white/80 bg-white/82 px-4 py-3 text-sm shadow-sm shadow-indigo-100/50 transition hover:border-indigo-100 hover:bg-white"
     >
       <span className="min-w-0 truncate font-medium text-slate-600">
         {metric.title}
@@ -1412,9 +1559,9 @@ function PriorityList({ items }: { items: string[] }) {
       {items.map((item, index) => (
         <div
           key={item}
-          className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+          className="flex gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm text-slate-700"
         >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-semibold text-violet-700 shadow-sm ring-1 ring-indigo-100">
             {index + 1}
           </span>
           <span className="leading-6">{item}</span>
@@ -1430,7 +1577,7 @@ function HealthPanel({ items }: { items: { label: string; value: string }[] }) {
       {items.map((item) => (
         <div
           key={item.label}
-          className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-3 text-sm"
+          className="flex items-center justify-between gap-4 rounded-2xl border border-indigo-100 bg-white/70 px-4 py-3 text-sm shadow-sm shadow-indigo-50"
         >
           <span className="text-slate-500">{item.label}</span>
           <span className="text-right font-semibold text-slate-950">
@@ -1461,10 +1608,51 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+      className="flex items-center justify-between rounded-2xl border border-indigo-100 bg-white/82 px-3 py-2.5 text-slate-700 shadow-sm shadow-indigo-50 transition hover:border-indigo-200 hover:bg-white"
     >
       <span>{children}</span>
-      <span className="text-slate-400">→</span>
+      <span className="text-violet-400">→</span>
     </Link>
   );
+}
+
+function getMetricVisual(title: string, index: number): {
+  icon: ComponentType<{ className?: string }>;
+  iconClass: string;
+} {
+  const lowerTitle = title.toLowerCase();
+
+  if (lowerTitle.includes("customer")) {
+    return { icon: Building2, iconClass: "bg-blue-50 text-blue-700" };
+  }
+  if (lowerTitle.includes("lead") || lowerTitle.includes("user")) {
+    return { icon: Users, iconClass: "bg-violet-50 text-violet-700" };
+  }
+  if (lowerTitle.includes("invoice") || lowerTitle.includes("payment")) {
+    return { icon: CreditCard, iconClass: "bg-emerald-50 text-emerald-700" };
+  }
+  if (lowerTitle.includes("expense") || lowerTitle.includes("outstanding")) {
+    return { icon: Wallet, iconClass: "bg-rose-50 text-rose-700" };
+  }
+  if (lowerTitle.includes("project")) {
+    return { icon: BriefcaseBusiness, iconClass: "bg-indigo-50 text-indigo-700" };
+  }
+  if (lowerTitle.includes("support") || lowerTitle.includes("field")) {
+    return { icon: Wrench, iconClass: "bg-sky-50 text-sky-700" };
+  }
+  if (lowerTitle.includes("stock") || lowerTitle.includes("supplier") || lowerTitle.includes("asset")) {
+    return { icon: Package, iconClass: "bg-amber-50 text-amber-700" };
+  }
+  if (lowerTitle.includes("quotation") || lowerTitle.includes("report")) {
+    return { icon: FileText, iconClass: "bg-purple-50 text-purple-700" };
+  }
+  if (lowerTitle.includes("overdue") || lowerTitle.includes("due")) {
+    return { icon: AlertTriangle, iconClass: "bg-orange-50 text-orange-700" };
+  }
+
+  const fallbackIcons = [BarChart3, Activity, CheckCircle2, Sparkles];
+  return {
+    icon: fallbackIcons[index % fallbackIcons.length],
+    iconClass: "bg-indigo-50 text-indigo-700",
+  };
 }

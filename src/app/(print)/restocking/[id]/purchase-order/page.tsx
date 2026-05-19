@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/require-profile";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { formatDate } from "@/lib/utils/format-date";
+import { formatUserDate } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -52,6 +54,8 @@ export default async function PurchaseOrderPage({
   params,
 }: PurchaseOrderPageProps) {
   const { id } = await params;
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const [{ data: orderData }, { data: itemsData }] = await Promise.all([
@@ -166,10 +170,13 @@ export default async function PurchaseOrderPage({
                 label="PO / Restock No."
                 value={order.restock_number}
               />
-              <DocumentInfoRow label="Order Date" value={formatDate(order.order_date)} />
+              <DocumentInfoRow
+                label="Order Date"
+                value={formatUserDate(order.order_date, preferences)}
+              />
               <DocumentInfoRow
                 label="Expected Date"
-                value={formatDate(order.expected_date)}
+                value={formatUserDate(order.expected_date, preferences)}
               />
               <DocumentInfoRow label="Status" value={order.status.replace("_", " ")} />
               <DocumentInfoRow

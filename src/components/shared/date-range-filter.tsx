@@ -2,13 +2,24 @@ type DateRangeFilterProps = {
   actionPath: string;
   from?: string;
   to?: string;
+  currentWeekRange?: {
+    from: string;
+    to: string;
+  };
 };
 
 export function DateRangeFilter({
   actionPath,
   from,
   to,
+  currentWeekRange,
 }: DateRangeFilterProps) {
+  const currentWeekHref = currentWeekRange
+    ? `${actionPath}?from=${encodeURIComponent(
+        currentWeekRange.from
+      )}&to=${encodeURIComponent(currentWeekRange.to)}`
+    : null;
+
   return (
     <form
       action={actionPath}
@@ -52,6 +63,15 @@ export function DateRangeFilter({
       >
         Apply Filter
       </button>
+
+      {currentWeekHref ? (
+        <a
+          href={currentWeekHref}
+          className="inline-flex h-10 items-center justify-center rounded-md border border-[rgb(var(--bytech-accent-rgb)/0.25)] bg-[rgb(var(--bytech-accent-rgb)/0.08)] px-4 text-sm font-medium text-[var(--bytech-accent)]"
+        >
+          This Week
+        </a>
+      ) : null}
 
       <a
         href={actionPath}

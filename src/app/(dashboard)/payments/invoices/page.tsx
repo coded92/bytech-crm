@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/auth/require-module";
+import {
+  getCurrentUserPreferences,
+  getUserItemsPerPage,
+} from "@/lib/preferences/user-preferences";
 import { InvoiceTable } from "@/components/payments/invoice-table";
 import { Button } from "@/components/ui/button";
 
 export default async function InvoicesPage() {
   const profile = await requireModule("payments");
   const supabase = await createClient();
+  const preferences = await getCurrentUserPreferences(profile.id);
+  const itemsPerPage = getUserItemsPerPage(preferences);
 
   const { data: invoices, error } = await supabase
     .from("payment_invoices")
@@ -21,7 +27,8 @@ export default async function InvoicesPage() {
       status,
       customer:customers(company_name)
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -47,7 +54,10 @@ export default async function InvoicesPage() {
           Failed to load invoices: {error.message}
         </div>
       ) : (
-        <InvoiceTable invoices={invoices || []} />
+        <InvoiceTable
+          invoices={invoices || []}
+          dateFormat={preferences.date_format}
+        />
       )}
     </div>
   );

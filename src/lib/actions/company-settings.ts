@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { logSecurityEvent } from "@/lib/security/events";
 import { updateCompanySettingsSchema } from "@/lib/validations/company-settings";
 
 type CompanySettingsRow = {
@@ -84,6 +85,16 @@ export async function updateCompanySettingsAction(formData: FormData) {
     entity_id: existing?.id || admin.id,
     action: "updated",
     description: "Updated company settings and document branding",
+  });
+
+  await logSecurityEvent({
+    userId: admin.id,
+    eventType: "company_settings_updated",
+    metadata: {
+      scope: "company_settings",
+      company_name: values.company_name,
+      brand_name: values.brand_name ?? null,
+    },
   });
 
   revalidatePath("/settings/company");

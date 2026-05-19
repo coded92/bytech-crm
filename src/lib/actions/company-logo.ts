@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/require-permission";
+import { logSecurityEvent } from "@/lib/security/events";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFileToStorage } from "@/lib/storage/upload-file";
 
@@ -11,7 +12,7 @@ type CompanySettingsRow = {
 };
 
 export async function uploadCompanyLogoAction(formData: FormData) {
-  await requirePermission("settings", "admin");
+  const profile = await requirePermission("settings", "admin");
   const supabase = await createClient();
 
   const fileEntry = formData.get("logo");
@@ -57,7 +58,26 @@ export async function uploadCompanyLogoAction(formData: FormData) {
     return { error: error.message };
   }
 
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: profile.id,
+    entity_type: "company_settings",
+    entity_id: settings.id,
+    action: "logo_uploaded",
+    description: "Updated company logo for document branding",
+  });
+
+  await logSecurityEvent({
+    userId: profile.id,
+    eventType: "document_branding_settings_updated",
+    metadata: {
+      scope: "company_logo",
+      storage_bucket: "branding",
+      storage_path: uploadResult.filePath,
+    },
+  });
+
   revalidatePath("/settings/company");
+  revalidatePath("/settings/documents-branding");
   revalidatePath("/dashboard");
   revalidatePath("/quotations");
   revalidatePath("/payments/invoices");
@@ -69,7 +89,7 @@ export async function uploadCompanyLogoAction(formData: FormData) {
 }
 
 export async function deleteCompanyLogoAction() {
-  await requirePermission("settings", "admin");
+  const profile = await requirePermission("settings", "admin");
   const supabase = await createClient();
 
   const { data: settingsData } = await (supabase as any)
@@ -95,7 +115,24 @@ export async function deleteCompanyLogoAction() {
     return { error: error.message };
   }
 
+  await (supabase as any).from("activity_logs").insert({
+    actor_id: profile.id,
+    entity_type: "company_settings",
+    entity_id: settings.id,
+    action: "logo_removed",
+    description: "Removed company logo from document branding",
+  });
+
+  await logSecurityEvent({
+    userId: profile.id,
+    eventType: "document_branding_settings_updated",
+    metadata: {
+      scope: "company_logo_removed",
+    },
+  });
+
   revalidatePath("/settings/company");
+  revalidatePath("/settings/documents-branding");
   revalidatePath("/dashboard");
   revalidatePath("/quotations");
   revalidatePath("/payments/invoices");

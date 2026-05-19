@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/utils/format-date";
+import { requireProfile } from "@/lib/auth/require-profile";
+import { formatUserDate } from "@/lib/preferences/format";
+import { getCurrentUserPreferences } from "@/lib/preferences/user-preferences";
 import { DocumentShell } from "@/components/shared/document-shell";
 import { DocumentInfoRow } from "@/components/shared/document-info-row";
 import {
@@ -44,6 +46,8 @@ export default async function GoodsReceivedNotePage({
   params,
 }: GoodsReceivedNotePageProps) {
   const { id } = await params;
+  const profile = await requireProfile();
+  const preferences = await getCurrentUserPreferences(profile.id);
   const supabase = await createClient();
 
   const [{ data: orderData }, { data: itemsData }] = await Promise.all([
@@ -111,7 +115,7 @@ export default async function GoodsReceivedNotePage({
             <div className="w-full border border-slate-200 p-4 md:max-w-xs print:max-w-xs">
               <DocumentInfoRow
                 label="Received Date"
-                value={formatDate(order.received_date)}
+                value={formatUserDate(order.received_date, preferences)}
               />
               <div className="mt-4">
                 <DocumentInfoRow label="Reference" value={order.reference || "-"} />
@@ -140,14 +144,17 @@ export default async function GoodsReceivedNotePage({
             <div className="grid gap-4 border border-slate-200 p-5 sm:grid-cols-2 print:grid-cols-2">
               <DocumentInfoRow label="Restock No." value={order.restock_number} />
               <DocumentInfoRow label="Status" value={order.status.replace("_", " ")} />
-              <DocumentInfoRow label="Order Date" value={formatDate(order.order_date)} />
+              <DocumentInfoRow
+                label="Order Date"
+                value={formatUserDate(order.order_date, preferences)}
+              />
               <DocumentInfoRow
                 label="Expected Date"
-                value={formatDate(order.expected_date)}
+                value={formatUserDate(order.expected_date, preferences)}
               />
               <DocumentInfoRow
                 label="Received Date"
-                value={formatDate(order.received_date)}
+                value={formatUserDate(order.received_date, preferences)}
               />
               <DocumentInfoRow label="Total Quantity" value={totalQuantity} />
             </div>
